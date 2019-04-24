@@ -326,11 +326,11 @@ class Workspace:
         parent = self.objects['items'][wid_from]
         child = self.objects['items'][wid_to]
         # test whether link already exists
-        if link_exists:
-            print('link already exists')
-        else:
-            if save_to_db:
-                self.graph_items_1.link('items_relation_1', parent, child, {})
+        # if link_exists:
+        #     print('link already exists')
+        # else:
+        #     if save_to_db:
+        #         self.graph_items_1.link('items_relation_1', parent, child, {})
             # parent.children += [wid_to]
             # child.parents += [wid_from]
 
@@ -511,8 +511,11 @@ class DbExplore:
     def search_and_item_string(self, *args):
         """
         performs a full match of all the strings (not case sensitive). Uses AND connector.
+
+        .. note::
+            beginning and end of each string must match beginning and end of words in field
+
         :param args: strings to match in content fields from items in db.
-              !NOTE! beginning and end of each string must match beginning and end of words in field
         :return: stdout
         """
         words = ','.join(args)
@@ -525,8 +528,11 @@ class DbExplore:
     def search_or_item_string(self, *args):
         """
         performs a full match of all the strings (not case sensitive). Uses OR connector.
+
+        .. note::
+            beginning and end of each string must match beginning and end of words in field
+
         :param args: strings to match in content fields from items in db.
-              !NOTE! beginning and end of each string must match beginning and end of words in field
         :return: stdout
         """
         words = ',|'.join(args)
@@ -556,10 +562,10 @@ if __name__ == "__main__":
     # to run this script in interactive mode from Python's console,
     # type the following at the start of the console session
     #
-# from IndieK_functions import *
-# conn = Connection(username="root", password="l,.7)OCR")
-# w = Workspace(conn)
-# db = DbExplore(conn)
+    # from IndieK_functions import *
+    # conn = Connection(username="root", password="l,.7)OCR")
+    # w = Workspace(conn)
+    # db = DbExplore(conn)
     #
     # from there, you are good to play with the methods of w and db
 
@@ -585,32 +591,32 @@ if __name__ == "__main__":
 
     db = DbExplore(conn)
 
-'''
-Console example for success for edge creation (item in topic)
-from IndieK_functions import *
-conn = Connection(username="root", password="l,.7)OCR")
-w = Workspace(conn)
-db = DbExplore(conn)
-w.fetch_object('438192','items')
-    item fetched:
-    _id: items/438192
-    _key: 438192
-    _rev: _WoRa1sK--_
-    wid: 596325
-    as in db: True
-w.fetch_object('471606','topics')
-    topic fetched
-    _id: topics/471606
-    _key: 471606
-    _rev: _WoV9L2y--_
-    wid: 92075a
-    as in db: True
-    topic name: et le marathon
-    topic descr: et pour une fois que je gagne!
-obj1 = w.objects['items']['596325']
-obj2 = w.objects['topics']['92075a']
-db.graph_topics_elements.link('topics_elements_relation', obj2, obj1, {})
-    ArangoEdge '_id: topics_elements_relation/915654, _key: 915654, _rev: _WvEkrtG--_, _to: items/438192, _from: topics/471606': <store: {}>
-
-PB: allows duplicate edges
-'''
+    '''
+    Console example for success for edge creation (item in topic)
+    from IndieK_functions import *
+    conn = Connection(username="root", password="l,.7)OCR")
+    w = Workspace(conn)
+    db = DbExplore(conn)
+    w.fetch_object('438192','items')
+        item fetched:
+        _id: items/438192
+        _key: 438192
+        _rev: _WoRa1sK--_
+        wid: 596325
+        as in db: True
+    w.fetch_object('471606','topics')
+        topic fetched
+        _id: topics/471606
+        _key: 471606
+        _rev: _WoV9L2y--_
+        wid: 92075a
+        as in db: True
+        topic name: et le marathon
+        topic descr: et pour une fois que je gagne!
+    obj1 = w.objects['items']['596325']
+    obj2 = w.objects['topics']['92075a']
+    db.graph_topics_elements.link('topics_elements_relation', obj2, obj1, {})
+        ArangoEdge '_id: topics_elements_relation/915654, _key: 915654, _rev: _WvEkrtG--_, _to: items/438192, _from: topics/471606': <store: {}>
+    
+    PB: allows duplicate edges
+    '''

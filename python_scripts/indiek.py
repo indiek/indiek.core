@@ -10,8 +10,8 @@ __author__ = "Adrian Ernesto Radillo"
 
 from collections import namedtuple
 
-AllowedUIs = namedtuple('AllowedUIs', ['PYTHON_CONSOLE', 'SHELL'])
-ALLOWED_UI_MODES = AllowedUIs(PYTHON_CONSOLE='pythonConsole')  # the point here is to have an 'immutable' dictionary
+AllowedUIs = namedtuple('AllowedUIs', ['PY_CONSOLE', 'SHELL'])
+ALLOWED_UI_MODES = AllowedUIs(PY_CONSOLE='pythonConsole', SHELL='shell')  # the point here is to have an 'immutable' dictionary
 
 AllowedDBs = namedtuple('AllowedDBs', ['DUMMY_DATABASE'])
 ALLOWED_DATABASES = AllowedDBs(DUMMY_DATABASE='DummyDB')
@@ -59,15 +59,8 @@ class UserInterfaceSession:
         print('exiting IndieK session')
 
     def run(self):
-        while True:
-
-
-
-
-
-
-
-
+        pass
+        # while True:
 
 
 class DummyDB:
