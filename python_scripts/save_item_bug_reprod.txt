@@ -1,0 +1,74 @@
+The following is a reproduction of the commands that lead to the bug
+Commands are entered in Python console in interactive mode
+
+BUG: when content exists in db, new content doesn't overwrite it when
+save_item_to_db() is called.
+====================================================================
+
+w=Workspace(conn, interactive=True)
+w.display_item_info()
+Traceback (most recent call last):
+  File "/home/radillo/anaconda3/lib/python3.6/site-packages/IPython/core/interactiveshell.py", line 2881, in run_code
+    exec(code_obj, self.user_global_ns, self.user_ns)
+  File "<ipython-input-5-315112aa3cce>", line 1, in <module>
+    w.display_item_info()
+TypeError: display_item_info() missing 1 required positional argument: 'item_wid'
+w.diagnostic()
+workspace contains:
+0 graphs
+0 topics
+0 items
+List of workspace items
+w.create_new_item()
+Enter content of new item: 
+cuicuicuicuicuicui
+newly created item with workspace id: b28b58
+w.diagnostic()
+workspace contains:
+0 graphs
+0 topics
+1 items
+List of workspace items
+item _key: None
+item wid: b28b58
+content:
+-------
+cuicuicuicuicuicui
+-------
+item=w.items['b28b58']
+item.edit_item('mais enfin voyons!', interactive=False)
+item.display_item_content()
+content:
+-------
+mais enfin voyons!
+-------
+w.diagnostic()
+workspace contains:
+0 graphs
+0 topics
+1 items
+List of workspace items
+item _key: None
+item wid: b28b58
+content:
+-------
+mais enfin voyons!
+-------
+item.save_item_to_db()
+item with workspace id b28b58 got assigned _key 438192: 
+item.edit_item('mais enfin voyons 2!', interactive=False)
+w.diagnostic()
+workspace contains:
+0 graphs
+0 topics
+1 items
+List of workspace items
+item _key: 438192
+item wid: b28b58
+content:
+-------
+mais enfin voyons 2!
+-------
+item.save_item_to_db()
+item with workspace id b28b58 got assigned _key 438192: 
+
