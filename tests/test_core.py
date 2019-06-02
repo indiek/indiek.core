@@ -1,4 +1,11 @@
-from unittest import TestCase
+import unittest
+from pyArango.theExceptions import ConnectionError
+
+# todo: clean up following import
+import sys
+sys.path.append('../indiek/core/')
+from indiek_core import *
+
 """
 List of things to test:
 -    Connection
@@ -33,3 +40,25 @@ List of things to test:
 -        compound queries (with filters on several levels)
 -    Workspace?
 """
+
+
+class TestDBInfrastructure(unittest.TestCase):
+    """
+    when a connection to the db is started
+    """
+    def test_missing_user(self):
+        """
+        make sure the following cell exists in your .ikconfig file
+        "missing_user_config": {
+            "username": "bamboo",
+            "password": "",
+            "database": ""
+        }
+        :return:
+        """
+        self.assertRaises(ConnectionError, ik_connect, config='missing_user')
+
+
+if __name__ == '__main__':
+    unittest.main()
+

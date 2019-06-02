@@ -1,10 +1,8 @@
 """
-The aim of this script is to:
-    1. connect to ArangoDB with credentials fetched from a .json config file
-    2. check whether the 'ikdev' database and the 'topics' and 'links' collections exist; offer to create them if not
-    3. offer a basic API to 
-           a) create topics and links between them
-           b) gather topics and links into arbitrary graphs
+IndieK module containing core functionalities for DB connection and BLL
+    offer a basic API to
+        a) create topics and links between them
+        b) gather topics and links into arbitrary graphs
 """
 import pyArango.connection as pyconn
 from pyArango.document import Document
@@ -21,9 +19,14 @@ TOPIC_FIELDS = {'name': 'name', 'description': 'description'}
 LINK_FIELDS = {'note': 'note'}
 
 
-def ik_connect():
+def ik_connect(config='default'):
+    """
+    The aim of this script is to:
+        1. connect to ArangoDB with credentials fetched from a .json config file
+        2. check whether the 'ikdev' database and the 'topics' and 'links' collections exist; offer to create them if not
+    """
     with open(PATH_TO_CONFIG) as f:
-        conf = json.load(f)
+        conf = json.load(f)[config+'_config']
     conn = pyconn.Connection(username=conf['username'], password=conf['password'])
     db_name = conf['database']
 
@@ -73,6 +76,8 @@ def get_topic_by_name(db, topic_name, as_simple_query=False):
         return simple_query
     if simple_query.count > 0:
         return simple_query[0]
+    else:
+        return None
 
 
 def list_topics(db):
@@ -92,6 +97,13 @@ def list_topics(db):
 
 
 def create_topic(db, name, descr):
+    """
+    todo: use graph API
+    :param db:
+    :param name:
+    :param descr:
+    :return:
+    """
     if get_topic_by_name(db, name, as_simple_query=True):
         print(f"topic '{name}' already exists")
         doc = None
@@ -115,23 +127,24 @@ def subtopic_link_exists(db, topic1, topic2):
     return any([doc_in_list(o, in_edges) for o in out_edges])
 
 
-def create_subtopic_link(db, topic1, topic2, note=None):
+def create_subtopic_link(db, topic1, topic2):
     """
-    todo: verify that link doesn't exist
+    todo: check that topic1 and topic2 are 'up-to-date' before saving the link
+    todo: use graph API in this function
+    todo: get genealogy
     :param db:
-    :param topic1:
-    :param topic2:
-    :param note:
+    :param topic1: topic obj
+    :param topic2: topic obj
     :return:
     """
     if subtopic_link_exists(db, topic1, topic2):
-        print('subtopic link exists')
+        print('subtopic link exists, link creation aborted')
         return None
+
     link = db[COLL_NAMES['subtopic_links']].createEdge()
     link['_from'] = topic1['_id']
     link['_to'] = topic2['_id']
-    if note is not None:
-        link[LINK_FIELDS['note']] = note
+
     link.save()
     return link
 
