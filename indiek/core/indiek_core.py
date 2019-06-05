@@ -33,11 +33,8 @@ def ik_connect(config='default'):
     # check appropriate db and collections exist; offer to create them if they don't
     # note that creation might fail if proper permissions aren't set for the user
     if not conn.hasDatabase(db_name):
-        print(f"database {db_name} not found")
-        ans = input("would you like to create it? (y + ENTER for yes) ")
-        if ans == 'y':
-            conn.createDatabase(name=db_name)
-            print(f"database {db_name} created")
+        raise LookupError(f"database {db_name} not found; either it doesn't exist or arangodb"
+                          f" user {conf['username']} from your config file doesn't have proper permissions")
 
     db = conn[db_name]
 

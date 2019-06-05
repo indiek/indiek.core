@@ -1,11 +1,9 @@
 import unittest
 from pyArango.theExceptions import ConnectionError
-
-# todo: clean up following import
+# todo: clean up following imports
 import sys
 sys.path.append('../indiek/core/')
-from indiek_core import *
-
+import indiek_core as ikcore
 """
 List of things to test:
 -    Connection
@@ -54,9 +52,34 @@ class TestDBInfrastructure(unittest.TestCase):
             "password": "",
             "database": ""
         }
-        :return:
         """
-        self.assertRaises(ConnectionError, ik_connect, config='missing_user')
+        self.assertRaises(ConnectionError, ikcore.ik_connect, config='missing_user')
+
+    # def test_topics_graph_existence(self):
+    #     pass
+
+    def test_missing_db(self):
+        """
+        make sure the following cell exists in your .ikconfig file
+        "missing_db_config": {
+            "username": "<valid username>",
+            "password": "<valid password>",
+            "database": "<invalid database name>"
+        },
+        """
+        self.assertRaises(LookupError, ikcore.ik_connect, config='missing_db')
+
+    def test_unauthorized_user(self):
+        """
+        make sure the following cell exists in your .ikconfig file and that a user named <unauth> exists in your
+        ArangoDB database which doesn't have access to the database <database>
+        "unauthorized_user_config": {
+            "username": "<unauth>",
+            "password": "",
+            "database": "<database>"
+        }
+        """
+        self.assertRaises(LookupError, ikcore.ik_connect, config='unauthorized_user')
 
 
 if __name__ == '__main__':
