@@ -23,7 +23,8 @@ def ik_connect(config='default'):
     """
     The aim of this script is to:
         1. connect to ArangoDB with credentials fetched from a .json config file
-        2. check whether the 'ikdev' database and the 'topics' and 'links' collections exist; offer to create them if not
+        2. check whether the 'ikdev' database and the 'topics' and 'links' collections exist
+    todo: accept on-the-fly configuration (no need to read from config file)
     """
     with open(PATH_TO_CONFIG) as f:
         conf = json.load(f)[config+'_config']
@@ -78,6 +79,11 @@ def get_topic_by_name(db, topic_name, as_simple_query=False):
 
 
 def list_topics(db):
+    """
+
+    :param db: ik db instance
+    :return:
+    """
     sep_line = '----------------------'
 
     simple_query = db[COLL_NAMES['topics']].fetchAll()
@@ -87,8 +93,7 @@ def list_topics(db):
     for topic in simple_query:
         name_key = TOPIC_FIELDS['name']
         description_key = TOPIC_FIELDS['description']
-        print(sep_line)
-        print(f"{name_key}: {topic[name_key]}\n")
+        print(f"\n{name_key}: {topic[name_key]}\n")
         print(f"{description_key}:\n{topic[description_key]}")
         print(sep_line)
 

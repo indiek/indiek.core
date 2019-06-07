@@ -1,17 +1,19 @@
+import io
 import unittest
-from pyArango.theExceptions import ConnectionError
-# todo: clean up following imports
 import sys
+from pyArango.theExceptions import ConnectionError
+
+# todo: clean up following imports
 sys.path.append('../indiek/core/')
 import indiek_core as ikcore
 """
 List of things to test:
 -    Connection
--        username
--        password
--        config file (ik should check validity of config file) 
++        username
++        password
+-        config file (ik should check validity of config file) -- might be taken care of by json module
 -        port
--        database permissions
++        database permissions
 -        collection permissions
 -    Creation/edition/deletion of info
 -        format and constraints of user input
@@ -55,6 +57,16 @@ class TestDBInfrastructure(unittest.TestCase):
         """
         self.assertRaises(ConnectionError, ikcore.ik_connect, config='missing_user')
 
+    def test_wrong_password(self):
+        """
+        "wrong_pwd_config": {
+            "username": "<correct username>",
+            "password": "<wrong password>",
+            "database": "<correct db name>"
+        }
+        """
+        self.assertRaises(ConnectionError, ikcore.ik_connect, config='wrong_pwd')
+
     # def test_topics_graph_existence(self):
     #     pass
 
@@ -80,6 +92,31 @@ class TestDBInfrastructure(unittest.TestCase):
         }
         """
         self.assertRaises(LookupError, ikcore.ik_connect, config='unauthorized_user')
+
+
+class TestQueries(unittest.TestCase):
+    def setUp(self):
+        self.db = ikcore.ik_connect(config='test_db')
+
+    def tearDown(self):
+        del self.db
+
+    def test_list_topics(self):
+        """
+        add a topic and check it is in the output
+        """
+        topic_name = 'test_topic'
+        topic_descr = 'descr of test topic'
+        ikcore.create_topic(self.db, topic_name, topic_descr)
+
+        # the following block taken from there: https://stackoverflow.com/a/34738440
+        captured_output = io.StringIO()  # Create StringIO object
+        sys.stdout = captured_output     # and redirect stdout.
+        ikcore.list_topics(self.db)      # Call function to test
+        sys.stdout = sys.__stdout__      # Reset redirect.
+
+        self.assertIn(topic_name, captured_output.getvalue())
+        self.assertIn(topic_descr, captured_output.getvalue())
 
 
 if __name__ == '__main__':
