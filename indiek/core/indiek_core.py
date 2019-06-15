@@ -6,8 +6,10 @@ IndieK module containing core functionalities for DB connection and BLL
 """
 import pyArango.connection as pyconn
 from pyArango.document import Document
-from pyArango.collection import Collection #, Field
+import pyArango.collection as pcl
 from pyArango.graph import Graph, EdgeDefinition
+import pyArango.validation as pvl
+from pyArango.theExceptions import ValidationError
 import json
 
 PATH_TO_CONFIG = '/home/adrian/.ikconfig'
@@ -17,6 +19,45 @@ COLL_NAMES = {'topics': 'topics',
               'subtopic_links': 'subtopic_links'}
 TOPIC_FIELDS = {'name': 'name', 'description': 'description'} 
 LINK_FIELDS = {'note': 'note'}
+MAX_LENGTHS = {'topic_name': 50, 'topic_description': 1000}
+
+
+"""
+ref for special collections:
+https://github.com/ArangoDB-Community/pyArango/tree/5d9465cabca15a75477948c45bb57aa57fc90a0a
+"""
+
+
+class String_val(pvl.Validator):
+    def validate(self, value):
+        if type(value) is not str:
+            raise ValidationError("Field value must be a string")
+        return True
+
+
+class Topics(pcl.Collection):
+    # not convinced the _properties below are all necessary
+    _properties = {
+        "keyOptions": {
+            "allowUserKeys": False,
+            "type": "autoincrement",
+        }
+    }
+
+    _validation = {
+        'on_save': True,
+        'on_set': True,
+        'allow_foreign_fields': False  # allow fields that are not part of the schema
+    }
+
+    _fields = {
+        'name': pcl.Field(validators=[pvl.NotNull(),
+                                      pvl.Length(2, MAX_LENGTHS['topic_name']),
+                                      String_val()]),
+        'description': pcl.Field(validators=[pvl.NotNull(),
+                                             pvl.Length(4, MAX_LENGTHS['topic_description']),
+                                             String_val()])
+    }
 
 
 def ik_connect(config='default'):

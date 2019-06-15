@@ -1,7 +1,7 @@
 import io
 import unittest
 import sys
-from pyArango.theExceptions import ConnectionError
+from pyArango.theExceptions import ConnectionError, ValidationError
 
 # todo: clean up following imports
 sys.path.append('../indiek/core/')
@@ -117,6 +117,23 @@ class TestQueries(unittest.TestCase):
 
         self.assertIn(topic_name, captured_output.getvalue())
         self.assertIn(topic_descr, captured_output.getvalue())
+
+
+class TestTopicFieldValidation(unittest.TestCase):
+    def setUp(self):
+        self.db = ikcore.ik_connect(config='test_db')
+
+    def tearDown(self):
+        del self.db
+
+    def test_topic_name(self):
+        """
+        name is empty string
+        name too long
+        name not a string
+        name contains space or tabs
+        """
+        self.assertRaises(ValidationError, ikcore.create_topic, self.db, '', 'descr')
 
 
 if __name__ == '__main__':
