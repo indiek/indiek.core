@@ -19,7 +19,7 @@ import json
 PATH_TO_CONFIG = '/home/adrian/.ikconfig'
 
 # keys are what I use in the code, values are what is used in the database
-COLL_NAMES = {'topics': 'topics',
+COLL_NAMES = {'topics': 'Topics',
               'subtopic_links': 'subtopic_links'}
 TOPIC_FIELDS = {'name': 'name', 'description': 'description'} 
 LINK_FIELDS = {'note': 'note'}

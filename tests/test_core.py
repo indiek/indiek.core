@@ -1,7 +1,7 @@
 import io
 import unittest
 import sys
-from pyArango.theExceptions import ConnectionError, ValidationError
+from pyArango.theExceptions import ConnectionError, ValidationError, InvalidDocument
 
 # todo: clean up following imports
 sys.path.append('../indiek/core/')
@@ -133,7 +133,7 @@ class TestTopicFieldValidation(unittest.TestCase):
         name not a string
         name contains space or tabs
         """
-        self.assertRaises(ValidationError, ikcore.create_topic, self.db, '', 'descr')
+        self.assertRaises(InvalidDocument, ikcore.create_topic, self.db, '', 'descr')
 
 
 if __name__ == '__main__':
