@@ -24,6 +24,7 @@ PATH_TO_CONFIG = '/home/adrian/.ikconfig'
 # keys are what I use in the code, values are what is used in the database
 COLL_NAMES = {'topics': 'Topics',
               'subtopic_links': 'SubtopicRelation'}
+GRAPH_NAMES = {'all_topics': 'TopicsGraph'}
 TOPIC_FIELDS = {'name': 'name', 'description': 'description'} 
 LINK_FIELDS = {'note': 'note'}
 MAX_LENGTHS = {'topic_name': 50, 'topic_description': 1000}
@@ -72,6 +73,12 @@ class SubtopicRelation(pcl.Edges):
     pass
 
 
+class TopicsGraph(Graph):
+    """graph of all topics in the database"""
+    _edgeDefinitions = [EdgeDefinition("SubtopicRelation", fromCollections=["Topics"], toCollections=["Topics"])]
+    _orphanedCollections = []
+
+
 def ik_connect(config='default'):
     """
     The aim of this script is to:
@@ -106,6 +113,13 @@ def ik_connect(config='default'):
         if ans == 'y':
             db.createCollection(name=COLL_NAMES['subtopic_links'], className='SubtopicRelation')
             print(f"collection {COLL_NAMES['subtopic_links']} created")
+
+    if not db.hasGraph(GRAPH_NAMES['all_topics']):
+        print(f"database {db_name} has no graph named {GRAPH_NAMES['all_topics']}")
+        ans = input("would you like to create it? (y + ENTER for yes) ")
+        if ans == 'y':
+            db.createGraph(GRAPH_NAMES['all_topics'])
+            print(f"graph {GRAPH_NAMES['all_topics']} created")
 
     return db
 
