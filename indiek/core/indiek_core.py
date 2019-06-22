@@ -3,6 +3,10 @@ IndieK module containing core functionalities for DB connection and BLL
     offer a basic API to
         a) create topics and links between them
         b) gather topics and links into arbitrary graphs
+
+Examples:
+    >>> db = ik_connect()
+    >>> list_topics(db)
 """
 import pyArango.connection as pyconn
 from pyArango.document import Document
@@ -72,8 +76,7 @@ def ik_connect(config='default'):
     conn = pyconn.Connection(username=conf['username'], password=conf['password'])
     db_name = conf['database']
 
-    # check appropriate db and collections exist; offer to create them if they don't
-    # note that creation might fail if proper permissions aren't set for the user
+    # check appropriate db and collections exist
     if not conn.hasDatabase(db_name):
         raise LookupError(f"database {db_name} not found; either it doesn't exist or arangodb"
                           f" user {conf['username']} from your config file doesn't have proper permissions")
@@ -84,7 +87,7 @@ def ik_connect(config='default'):
         print(f"collection {COLL_NAMES['topics']} not found in db {db.name}")
         ans = input("would you like to create it? (y + ENTER for yes) ")
         if ans == 'y':
-            db.createCollection(name=COLL_NAMES['topics'], className='Collection')
+            db.createCollection(name=COLL_NAMES['topics'], className='Topics')
             print(f"collection {COLL_NAMES['topics']} created")
 
 #    db[COLL_NAMES['topics']].ensureFulltextIndex(list(TOPIC_FIELDS.values())) # somehow this fails
