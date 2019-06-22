@@ -23,7 +23,7 @@ PATH_TO_CONFIG = '/home/adrian/.ikconfig'
 
 # keys are what I use in the code, values are what is used in the database
 COLL_NAMES = {'topics': 'Topics',
-              'subtopic_links': 'subtopic_links'}
+              'subtopic_links': 'SubtopicRelation'}
 TOPIC_FIELDS = {'name': 'name', 'description': 'description'} 
 LINK_FIELDS = {'note': 'note'}
 MAX_LENGTHS = {'topic_name': 50, 'topic_description': 1000}
@@ -67,6 +67,11 @@ class Topics(pcl.Collection):
     }
 
 
+class SubtopicRelation(pcl.Edges):
+    """edge class to use to assign a topic as a subtopic of another"""
+    pass
+
+
 def ik_connect(config='default'):
     """
     The aim of this script is to:
@@ -99,7 +104,7 @@ def ik_connect(config='default'):
         print(f"collection {COLL_NAMES['subtopic_links']} not found in db {db.name}")
         ans = input("would you like to create it? (y + ENTER for yes) ")
         if ans == 'y':
-            db.createCollection(name=COLL_NAMES['subtopic_links'], className='Edges')
+            db.createCollection(name=COLL_NAMES['subtopic_links'], className='SubtopicRelation')
             print(f"collection {COLL_NAMES['subtopic_links']} created")
 
     return db
