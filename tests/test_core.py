@@ -129,6 +129,7 @@ class TestTopicFieldValidation(unittest.TestCase):
     def test_topic_name(self):
         """
         name is empty string
+        # todo: the remainder of this docstring
         name too long
         name not a string
         name contains space or tabs

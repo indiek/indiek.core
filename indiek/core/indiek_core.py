@@ -7,6 +7,9 @@ IndieK module containing core functionalities for DB connection and BLL
 Examples:
     >>> db = ik_connect()
     >>> list_topics(db)
+
+Next steps in development:
++ handle all topic and topic links through the full topic graph
 """
 import pyArango.connection as pyconn
 from pyArango.document import Document
