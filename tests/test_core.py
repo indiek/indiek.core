@@ -96,10 +96,10 @@ class TestDBInfrastructure(unittest.TestCase):
 
 class TestQueries(unittest.TestCase):
     def setUp(self):
-        self.db = ikcore.ik_connect(config='test_db')
+        self.sess = ikcore.UserInterface(conn_opts='test_db')
 
     def tearDown(self):
-        del self.db
+        del self.sess
 
     def test_list_topics(self):
         """
@@ -107,12 +107,14 @@ class TestQueries(unittest.TestCase):
         """
         topic_name = 'test_topic'
         topic_descr = 'descr of test topic'
-        ikcore.create_topic(self.db, topic_name, topic_descr)
+        self.sess.create_topic(topic_name, topic_descr)
 
         # the following block taken from there: https://stackoverflow.com/a/34738440
         captured_output = io.StringIO()  # Create StringIO object
         sys.stdout = captured_output     # and redirect stdout.
-        ikcore.list_topics(self.db)      # Call function to test
+
+        self.sess.list_topics()      # Call function to test
+
         sys.stdout = sys.__stdout__      # Reset redirect.
 
         self.assertIn(topic_name, captured_output.getvalue())
@@ -121,10 +123,10 @@ class TestQueries(unittest.TestCase):
 
 class TestTopicFieldValidation(unittest.TestCase):
     def setUp(self):
-        self.db = ikcore.ik_connect(config='test_db')
+        self.sess = ikcore.UserInterface(conn_opts='test_db')
 
     def tearDown(self):
-        del self.db
+        del self.sess
 
     def test_topic_name(self):
         """
@@ -134,7 +136,7 @@ class TestTopicFieldValidation(unittest.TestCase):
         name not a string
         name contains space or tabs
         """
-        self.assertRaises(InvalidDocument, ikcore.create_topic, self.db, '', 'descr')
+        self.assertRaises(InvalidDocument, self.sess.create_topic, '', 'descr')
 
 
 if __name__ == '__main__':
