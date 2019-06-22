@@ -5,8 +5,8 @@ IndieK module containing core functionalities for DB connection and BLL
         b) gather topics and links into arbitrary graphs
 
 Examples:
-    >>> db = ik_connect()
-    >>> list_topics(db)
+    >>> sess = UserInterface()
+    >>> sess.list_topics()
 
 Next steps in development:
 + handle all topic and topic links through the full topic graph
@@ -34,49 +34,6 @@ MAX_LENGTHS = {'topic_name': 50, 'topic_description': 1000}
 ref for special collections:
 https://github.com/ArangoDB-Community/pyArango/tree/5d9465cabca15a75477948c45bb57aa57fc90a0a
 """
-
-
-class String_val(pvl.Validator):
-    def validate(self, value):
-        if type(value) is not str:
-            raise ValidationError("Field value must be a string")
-        return True
-
-
-class Topics(pcl.Collection):
-    # not convinced the _properties below are all necessary
-    _properties = {
-        "keyOptions": {
-            "allowUserKeys": False,
-            "type": "autoincrement",
-        }
-    }
-
-    _validation = {
-        'on_save': True,
-        'on_set': True,
-        'allow_foreign_fields': False  # allow fields that are not part of the schema
-    }
-
-    _fields = {
-        'name': pcl.Field(validators=[pvl.NotNull(),
-                                      pvl.Length(2, MAX_LENGTHS['topic_name']),
-                                      String_val()]),
-        'description': pcl.Field(validators=[pvl.NotNull(),
-                                             pvl.Length(4, MAX_LENGTHS['topic_description']),
-                                             String_val()])
-    }
-
-
-class SubtopicRelation(pcl.Edges):
-    """edge class to use to assign a topic as a subtopic of another"""
-    pass
-
-
-class TopicsGraph(Graph):
-    """graph of all topics in the database"""
-    _edgeDefinitions = [EdgeDefinition("SubtopicRelation", fromCollections=["Topics"], toCollections=["Topics"])]
-    _orphanedCollections = []
 
 
 def ik_connect(config='default'):
@@ -144,43 +101,99 @@ def get_topic_by_name(db, topic_name, as_simple_query=False):
         return None
 
 
-def list_topics(db):
+class StringVal(pvl.Validator):
+    def validate(self, value):
+        if type(value) is not str:
+            raise ValidationError("Field value must be a string")
+        return True
+
+
+class Topics(pcl.Collection):
+    # not convinced the _properties below are all necessary
+    _properties = {
+        "keyOptions": {
+            "allowUserKeys": False,
+            "type": "autoincrement",
+        }
+    }
+
+    _validation = {
+        'on_save': True,
+        'on_set': True,
+        'allow_foreign_fields': False  # allow fields that are not part of the schema
+    }
+
+    _fields = {
+        'name': pcl.Field(validators=[pvl.NotNull(),
+                                      pvl.Length(2, MAX_LENGTHS['topic_name']),
+                                      StringVal()]),
+        'description': pcl.Field(validators=[pvl.NotNull(),
+                                             pvl.Length(4, MAX_LENGTHS['topic_description']),
+                                             StringVal()])
+    }
+
+
+class SubtopicRelation(pcl.Edges):
+    """edge class to use to assign a topic as a subtopic of another"""
+    pass
+
+
+class TopicsGraph(Graph):
+    """graph of all topics in the database"""
+    _edgeDefinitions = [EdgeDefinition("SubtopicRelation",
+                                       fromCollections=COLL_NAMES["topics"],
+                                       toCollections=COLL_NAMES["topics"])]
+    _orphanedCollections = []
+
+
+class UserInterface:
     """
-
-    :param db: ik db instance
-    :return:
+    Class through which all user interactions with ik database occurs. Should be used as a session manager, i.e. each
+    instance is a separate ik user session with its own connection to ik's database.
     """
-    sep_line = '----------------------'
+    def __init__(self, conn_opts='default'):
+        self.db = ik_connect(config=conn_opts)
+        self.topics_graph = self.db.graphs[GRAPH_NAMES['all_topics']]
 
-    simple_query = db[COLL_NAMES['topics']].fetchAll()
+    def create_topic(self, name, descr):
+        """
+        :param name:
+        :param descr:
+        :return:
+        """
+        if get_topic_by_name(self.db, name, as_simple_query=True):
+            print(f"topic '{name}' already exists")
+            doc = None
+        else:
+            doc = self.topics_graph.createVertex(
+                COLL_NAMES['topics'],
+                {
+                    TOPIC_FIELDS['name']: name,
+                    TOPIC_FIELDS['description']: descr
+                }
+            )
+            doc.save()
+        return doc
 
-    print(f'LIST OF {simple_query.count} TOPICS IN DB')
+    def list_topics(self):
+        """
+        :param db: ik db instance
+        :return:
+        """
+        sep_line = '----------------------'
 
-    for topic in simple_query:
-        name_key = TOPIC_FIELDS['name']
-        description_key = TOPIC_FIELDS['description']
-        print(f"\n{name_key}: {topic[name_key]}\n")
-        print(f"{description_key}:\n{topic[description_key]}")
-        print(sep_line)
+        simple_query = self.db[COLL_NAMES['topics']].fetchAll()
+
+        print(f'LIST OF {simple_query.count} TOPICS IN DB')
+
+        for topic in simple_query:
+            name_key = TOPIC_FIELDS['name']
+            description_key = TOPIC_FIELDS['description']
+            print(f"\n{name_key}: {topic[name_key]}\n")
+            print(f"{description_key}:\n{topic[description_key]}")
+            print(sep_line)
 
 
-def create_topic(db, name, descr):
-    """
-    todo: use graph API
-    :param db:
-    :param name:
-    :param descr:
-    :return:
-    """
-    if get_topic_by_name(db, name, as_simple_query=True):
-        print(f"topic '{name}' already exists")
-        doc = None
-    else:
-        doc = db[COLL_NAMES['topics']].createDocument({
-            TOPIC_FIELDS['name']: name,
-            TOPIC_FIELDS['description']: descr})
-        doc.save()
-    return doc
 
 
 def doc_in_list(document, list_of_docs):
@@ -218,32 +231,33 @@ def create_subtopic_link(db, topic1, topic2):
 
 
 if __name__ == "__main__":
-    db_o = ik_connect()
-    print('list topics')
-    print(list_topics(db_o))
-
-    print('checking emptyness in if statement')
-    t = get_topic_by_name(db_o, 'salut')
-    if t:
-        print('topic found!')
-    else:
-        print('topic not found!')
-
-    print('creating topic "salut"')
-    create_topic(db_o, 'salut', 'premier topic')
-    
-    print('list topics')
-    print(list_topics(db_o))
-
-    print('checking emptyness in if statement')
-    t = get_topic_by_name(db_o, 'salut')
-    if t:
-        print('topic found!')
-    else:
-        print('topic not found!')
-
-    print('trying to re-create same topic')
-    create_topic(db_o, 'salut', 'premier topic')
-    
-    print('list topics')
-    print(list_topics(db_o))
+    pass
+    # db_o = ik_connect()
+    # print('list topics')
+    # print(list_topics(db_o))
+    #
+    # print('checking emptyness in if statement')
+    # t = get_topic_by_name(db_o, 'salut')
+    # if t:
+    #     print('topic found!')
+    # else:
+    #     print('topic not found!')
+    #
+    # print('creating topic "salut"')
+    # create_topic(db_o, 'salut', 'premier topic')
+    #
+    # print('list topics')
+    # print(list_topics(db_o))
+    #
+    # print('checking emptyness in if statement')
+    # t = get_topic_by_name(db_o, 'salut')
+    # if t:
+    #     print('topic found!')
+    # else:
+    #     print('topic not found!')
+    #
+    # print('trying to re-create same topic')
+    # create_topic(db_o, 'salut', 'premier topic')
+    #
+    # print('list topics')
+    # print(list_topics(db_o))
