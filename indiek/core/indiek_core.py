@@ -198,7 +198,18 @@ class UserInterface:
             print(sep_line)
 
     def set_subtopic(self, supratopic, subtopic):
-        self.topics_graph.link('SubtopicRelation', supratopic, subtopic)
+        self.topics_graph.link('SubtopicRelation', supratopic, subtopic, {})
+
+    def has_as_descendent(self, supra, sub):
+        """
+        True if sub is in the list of subtopic descendents of supra
+        :param supra: topic document supposed to ancestor
+        :param sub: topic document supposed to be descendent
+        :return: (bool)
+        """
+        q = self.topics_graph.traverse(supra, direction="outbound")
+        n = TOPIC_FIELDS['name']
+        return sub[n] in [d[n] for d in q['visited']['vertices']]
 
 
 def doc_in_list(document, list_of_docs):
