@@ -211,6 +211,10 @@ class UserInterface:
         n = TOPIC_FIELDS['name']
         return sub[n] in [d[n] for d in q['visited']['vertices']]
 
+    def clear_topics(self):
+        self.db[COLL_NAMES['topics']].empty()
+        self.db[COLL_NAMES['subtopic_links']].empty()
+
 
 def doc_in_list(document, list_of_docs):
     doc_id = document['_id']

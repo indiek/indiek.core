@@ -121,6 +121,35 @@ class TestQueries(unittest.TestCase):
         self.assertIn(topic_descr, captured_output.getvalue())
         self.sess.delete_topic(topic)
 
+    def test_has_as_descendent(self):
+        t1 = self.sess.create_topic('t1', 'minimal element')
+        t2 = self.sess.create_topic('t2', 'same level as t1')
+        t3 = self.sess.create_topic('t3', 'child of t1 and t2')
+        self.sess.set_subtopic(t1, t3)
+        self.sess.set_subtopic(t2, t3)
+
+        t4 = self.sess.create_topic('t4', 'child of t3 and t5')
+        self.sess.set_subtopic(t3, t4)
+
+        t5 = self.sess.create_topic('t5', 'minimal element')
+        self.sess.set_subtopic(t5, t4)
+
+        self.assertTrue(self.sess.has_as_descendent(t1, t3))
+        self.assertTrue(self.sess.has_as_descendent(t2, t3))
+        self.assertTrue(self.sess.has_as_descendent(t3, t4))
+        self.assertTrue(self.sess.has_as_descendent(t5, t4))
+
+        self.assertTrue(self.sess.has_as_descendent(t2, t4))
+        self.assertTrue(self.sess.has_as_descendent(t1, t4))
+
+        self.assertFalse(self.sess.has_as_descendent(t3, t1))
+        self.assertFalse(self.sess.has_as_descendent(t3, t2))
+        self.assertFalse(self.sess.has_as_descendent(t4, t1))
+        self.assertFalse(self.sess.has_as_descendent(t4, t5))
+
+        self.assertFalse(self.sess.has_as_descendent(t2, t5))
+        self.assertFalse(self.sess.has_as_descendent(t5, t2))
+
 
 class TestTopicFieldValidation(unittest.TestCase):
     def setUp(self):
