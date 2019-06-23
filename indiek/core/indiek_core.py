@@ -157,8 +157,8 @@ class UserInterface:
 
     def create_topic(self, name, descr):
         """
-        :param name:
-        :param descr:
+        :param name: topic name (see Topics._fields for constraints)
+        :param descr: topic description (see Topics._fields for constraints)
         :return:
         """
         if get_topic_by_name(self.db, name, as_simple_query=True):
@@ -174,6 +174,10 @@ class UserInterface:
             )
             doc.save()
         return doc
+
+    def delete_topic(self, doc):
+        """remove topic from database, and all linked edges"""
+        self.topics_graph.deleteVertex(doc)
 
     def list_topics(self):
         """
@@ -193,7 +197,8 @@ class UserInterface:
             print(f"{description_key}:\n{topic[description_key]}")
             print(sep_line)
 
-
+    def set_subtopic(self, supratopic, subtopic):
+        self.topics_graph.link('SubtopicRelation', supratopic, subtopic)
 
 
 def doc_in_list(document, list_of_docs):
@@ -231,33 +236,17 @@ def create_subtopic_link(db, topic1, topic2):
 
 
 if __name__ == "__main__":
-    pass
-    # db_o = ik_connect()
-    # print('list topics')
-    # print(list_topics(db_o))
-    #
-    # print('checking emptyness in if statement')
-    # t = get_topic_by_name(db_o, 'salut')
-    # if t:
-    #     print('topic found!')
-    # else:
-    #     print('topic not found!')
-    #
-    # print('creating topic "salut"')
-    # create_topic(db_o, 'salut', 'premier topic')
-    #
-    # print('list topics')
-    # print(list_topics(db_o))
-    #
-    # print('checking emptyness in if statement')
-    # t = get_topic_by_name(db_o, 'salut')
-    # if t:
-    #     print('topic found!')
-    # else:
-    #     print('topic not found!')
-    #
-    # print('trying to re-create same topic')
-    # create_topic(db_o, 'salut', 'premier topic')
-    #
-    # print('list topics')
-    # print(list_topics(db_o))
+    s = UserInterface()
+    # create a simple topics graph
+    t1 = s.create_topic('t1', 'minimal element')
+    t2 = s.create_topic('t2', 'same level as t1')
+    t3 = s.create_topic('t3', 'child of t1 and t2')
+    s.set_subtopic(t1, t3)
+    s.set_subtopic(t2, t3)
+
+    t4 = s.create_topic('t4', 'child of t3 and t5')
+    s.set_subtopic(t3, t4)
+
+    t5 = s.create_topic('t5', 'minimal element')
+    s.set_subtopic(t5, t4)
+    # now explore it in browser

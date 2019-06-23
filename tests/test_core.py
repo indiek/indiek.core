@@ -107,7 +107,7 @@ class TestQueries(unittest.TestCase):
         """
         topic_name = 'test_topic'
         topic_descr = 'descr of test topic'
-        self.sess.create_topic(topic_name, topic_descr)
+        topic = self.sess.create_topic(topic_name, topic_descr)
 
         # the following block taken from there: https://stackoverflow.com/a/34738440
         captured_output = io.StringIO()  # Create StringIO object
@@ -119,6 +119,7 @@ class TestQueries(unittest.TestCase):
 
         self.assertIn(topic_name, captured_output.getvalue())
         self.assertIn(topic_descr, captured_output.getvalue())
+        self.sess.delete_topic(topic)
 
 
 class TestTopicFieldValidation(unittest.TestCase):
