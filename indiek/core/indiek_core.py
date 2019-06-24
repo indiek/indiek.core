@@ -200,8 +200,8 @@ class UserInterface:
     def set_subtopic(self, supratopic, subtopic):
         """
         sets topic "subtopic" as subtopic of "supratopic"
-        :param supratopic: topic document
-        :param subtopic: topic document
+        :param supratopic: topic document or topic name
+        :param subtopic: topic document or topic name
         :return:
         """
         if self.has_as_descendent(supratopic, subtopic):
@@ -211,18 +211,32 @@ class UserInterface:
             print(f"topic {subtopic[TOPIC_FIELDS['name']]} is already an ancestor "
                   f"of topic {supratopic[TOPIC_FIELDS['name']]}. No new link created to avoid loop.")
         else:
+            if isinstance(supratopic, str):
+                supratopic = get_topic_by_name(self.db, supratopic)
+            if isinstance(subtopic, str):
+                subtopic = get_topic_by_name(self.db, subtopic)
             self.topics_graph.link('SubtopicRelation', supratopic, subtopic, {})
 
     def has_as_descendent(self, supra, sub):
         """
         True if sub is in the list of subtopic descendents of supra
-        :param supra: topic document supposed to ancestor
-        :param sub: topic document supposed to be descendent
+        :param supra: topic document (or name as str) supposed to be ancestor
+        :param sub: topic document (or name as str) supposed to be descendent
         :return: (bool)
         """
+        if isinstance(supra, str):
+            supra = get_topic_by_name(self.db, supra)
+
         q = self.topics_graph.traverse(supra, direction="outbound")
+
         n = TOPIC_FIELDS['name']
-        return sub[n] in [d[n] for d in q['visited']['vertices']]
+        list_of_descendents = [d[n] for d in q['visited']['vertices']]
+
+        if isinstance(sub, str):
+            to_return = sub in list_of_descendents
+        else:
+            to_return = sub[n] in list_of_descendents
+        return to_return
 
     def clear_topics(self):
         """
@@ -240,6 +254,7 @@ class UserInterface:
         :param topic: any topic document
         :return: a graph
         """
+
         raise NotImplementedError
 
 # def doc_in_list(document, list_of_docs):

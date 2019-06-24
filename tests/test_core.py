@@ -190,6 +190,8 @@ class TestTopicFieldValidation(unittest.TestCase):
         name contains space or tabs
         """
         self.assertRaises(InvalidDocument, self.sess.create_topic, '', 'descr')
+        self.assertRaises(InvalidDocument, self.sess.create_topic, 'A', 'too short')
+        self.assertRaises(InvalidDocument, self.sess.create_topic, 'missing description', '')
 
 
 if __name__ == '__main__':
