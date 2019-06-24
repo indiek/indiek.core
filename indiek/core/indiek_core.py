@@ -7,9 +7,9 @@ IndieK module containing core functionalities for DB connection and BLL
 Examples:
     >>> sess = UserInterface()
     >>> sess.list_topics()
-
-Next steps in development:
-+ handle all topic and topic links through the full topic graph
+    >>> topic1 = sess.create_topic('topic title', 'topic description')
+    >>> if topic1 is None:
+    ...     topic1 = get_topic_by_name(sess.db, 'topic title')
 """
 import pyArango.connection as pyconn
 from pyArango.document import Document
@@ -233,53 +233,48 @@ class UserInterface:
         self.db[COLL_NAMES['topics']].empty()
         self.db[COLL_NAMES['subtopic_links']].empty()
 
+    def create_topic_genealogy(self, topic):
+        """
+        my idea for this method is to create a graph in the database that corresponds to all the genealogy
+        (ancestors and descendents) of a topic
+        :param topic: any topic document
+        :return: a graph
+        """
+        raise NotImplementedError
 
-def doc_in_list(document, list_of_docs):
-    doc_id = document['_id']
-    id_list = [d['_id'] for d in list_of_docs]
-    return doc_id in id_list
-
-
-def subtopic_link_exists(db, topic1, topic2):
-    out_edges = db[COLL_NAMES['subtopic_links']].getOutEdges(topic1)
-    in_edges = db[COLL_NAMES['subtopic_links']].getInEdges(topic2)
-    return any([doc_in_list(o, in_edges) for o in out_edges])
-
-
-def create_subtopic_link(db, topic1, topic2):
-    """
-    todo: check that topic1 and topic2 are 'up-to-date' before saving the link
-    todo: use graph API in this function
-    todo: get genealogy
-    :param db:
-    :param topic1: topic obj
-    :param topic2: topic obj
-    :return:
-    """
-    if subtopic_link_exists(db, topic1, topic2):
-        print('subtopic link exists, link creation aborted')
-        return None
-
-    link = db[COLL_NAMES['subtopic_links']].createEdge()
-    link['_from'] = topic1['_id']
-    link['_to'] = topic2['_id']
-
-    link.save()
-    return link
+# def doc_in_list(document, list_of_docs):
+#     doc_id = document['_id']
+#     id_list = [d['_id'] for d in list_of_docs]
+#     return doc_id in id_list
+#
+#
+# def subtopic_link_exists(db, topic1, topic2):
+#     out_edges = db[COLL_NAMES['subtopic_links']].getOutEdges(topic1)
+#     in_edges = db[COLL_NAMES['subtopic_links']].getInEdges(topic2)
+#     return any([doc_in_list(o, in_edges) for o in out_edges])
+#
+#
+# def create_subtopic_link(db, topic1, topic2):
+#     """
+#     todo: check that topic1 and topic2 are 'up-to-date' before saving the link
+#     todo: use graph API in this function
+#     todo: get genealogy
+#     :param db:
+#     :param topic1: topic obj
+#     :param topic2: topic obj
+#     :return:
+#     """
+#     if subtopic_link_exists(db, topic1, topic2):
+#         print('subtopic link exists, link creation aborted')
+#         return None
+#
+#     link = db[COLL_NAMES['subtopic_links']].createEdge()
+#     link['_from'] = topic1['_id']
+#     link['_to'] = topic2['_id']
+#
+#     link.save()
+#     return link
 
 
 if __name__ == "__main__":
-    s = UserInterface()
-    # create a simple topics graph
-    t1 = s.create_topic('t1', 'minimal element')
-    t2 = s.create_topic('t2', 'same level as t1')
-    t3 = s.create_topic('t3', 'child of t1 and t2')
-    s.set_subtopic(t1, t3)
-    s.set_subtopic(t2, t3)
-
-    t4 = s.create_topic('t4', 'child of t3 and t5')
-    s.set_subtopic(t3, t4)
-
-    t5 = s.create_topic('t5', 'minimal element')
-    s.set_subtopic(t5, t4)
-    # now explore it in browser
+    pass

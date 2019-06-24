@@ -16,14 +16,14 @@ List of things to test:
 +        database permissions
 -        collection permissions
 -    Creation/edition/deletion of info
--        format and constraints of user input
++        format and constraints of user input
 -        saving to database
 -        validity of database data (BLL), at input time and as diagnostic utility:
--            two topics with same name forbidden
--            duplicated subtopic links forbidden
--            subtopic link creation constraints about ancestors/descendents relations
++            two topics with same name forbidden
++            duplicated subtopic links forbidden (and self-reflecting as well)
++            subtopic link creation constraints about ancestors/descendents relations
 -            timestamp fields update
--            text length
++            text length
 -            relation properties for user-defined relations
 -        automatic info fetch:
 -            from files
