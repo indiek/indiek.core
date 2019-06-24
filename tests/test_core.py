@@ -122,18 +122,41 @@ class TestQueries(unittest.TestCase):
         self.sess.delete_topic(topic)
 
     def test_has_as_descendent(self):
+        # create a basic graph (may already exist...)
         t1 = self.sess.create_topic('t1', 'minimal element')
+        if t1 is None:
+            t1 = ikcore.get_topic_by_name(self.sess.db, 't1')
+
         t2 = self.sess.create_topic('t2', 'same level as t1')
+        if t2 is None:
+            t2 = ikcore.get_topic_by_name(self.sess.db, 't2')
+
         t3 = self.sess.create_topic('t3', 'child of t1 and t2')
-        self.sess.set_subtopic(t1, t3)
-        self.sess.set_subtopic(t2, t3)
+        if t3 is None:
+            t3 = ikcore.get_topic_by_name(self.sess.db, 't3')
 
         t4 = self.sess.create_topic('t4', 'child of t3 and t5')
-        self.sess.set_subtopic(t3, t4)
+        if t4 is None:
+            t4 = ikcore.get_topic_by_name(self.sess.db, 't4')
 
         t5 = self.sess.create_topic('t5', 'minimal element')
-        self.sess.set_subtopic(t5, t4)
+        if t5 is None:
+            t5 = ikcore.get_topic_by_name(self.sess.db, 't5')
 
+        # whole two_valid block might be redundant
+        def two_valid(a, b):
+            return (a is not None) and (b is not None)
+
+        if two_valid(t1, t3):
+            self.sess.set_subtopic(t1, t3)
+        if two_valid(t2, t3):
+            self.sess.set_subtopic(t2, t3)
+        if two_valid(t3, t4):
+            self.sess.set_subtopic(t3, t4)
+        if two_valid(t4, t5):
+            self.sess.set_subtopic(t5, t4)
+
+        # assert statements
         self.assertTrue(self.sess.has_as_descendent(t1, t3))
         self.assertTrue(self.sess.has_as_descendent(t2, t3))
         self.assertTrue(self.sess.has_as_descendent(t3, t4))

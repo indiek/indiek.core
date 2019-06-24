@@ -90,7 +90,7 @@ def get_topic_by_name(db, topic_name, as_simple_query=False):
         topic_name: string, name of topic
         as_simple_query: bool, if true returns SimpleQuery object, if false (default) returns Document object
     Returns:
-        pyArango.query.SimpleQuery
+        pyArango.query.SimpleQuery OR Topics document
     """
     simple_query = db[COLL_NAMES['topics']].fetchByExample({TOPIC_FIELDS['name']: topic_name}, batchSize=100)
     if as_simple_query:
@@ -159,7 +159,7 @@ class UserInterface:
         """
         :param name: topic name (see Topics._fields for constraints)
         :param descr: topic description (see Topics._fields for constraints)
-        :return:
+        :return: document if topic successfully created, otherwise None
         """
         if get_topic_by_name(self.db, name, as_simple_query=True):
             print(f"topic '{name}' already exists")
@@ -181,7 +181,7 @@ class UserInterface:
 
     def list_topics(self):
         """
-        :param db: ik db instance
+        lists all topics in database
         :return:
         """
         sep_line = '----------------------'
@@ -198,7 +198,20 @@ class UserInterface:
             print(sep_line)
 
     def set_subtopic(self, supratopic, subtopic):
-        self.topics_graph.link('SubtopicRelation', supratopic, subtopic, {})
+        """
+        sets topic "subtopic" as subtopic of "supratopic"
+        :param supratopic: topic document
+        :param subtopic: topic document
+        :return:
+        """
+        if self.has_as_descendent(supratopic, subtopic):
+            print(f"topic {subtopic[TOPIC_FIELDS['name']]} is already a descendent "
+                  f"of topic {supratopic[TOPIC_FIELDS['name']]}. No new link created.")
+        elif self.has_as_descendent(subtopic, supratopic):
+            print(f"topic {subtopic[TOPIC_FIELDS['name']]} is already an ancestor "
+                  f"of topic {supratopic[TOPIC_FIELDS['name']]}. No new link created to avoid loop.")
+        else:
+            self.topics_graph.link('SubtopicRelation', supratopic, subtopic, {})
 
     def has_as_descendent(self, supra, sub):
         """
@@ -212,6 +225,11 @@ class UserInterface:
         return sub[n] in [d[n] for d in q['visited']['vertices']]
 
     def clear_topics(self):
+        """
+        removes all topics and their associated subtopic links from database.
+        Doesn't delete collections
+        :return:
+        """
         self.db[COLL_NAMES['topics']].empty()
         self.db[COLL_NAMES['subtopic_links']].empty()
 
