@@ -10,6 +10,10 @@ Examples:
     >>> topic1 = sess.create_topic('topic title', 'topic description')
     >>> if topic1 is None:
     ...     topic1 = get_topic_by_name(sess.db, 'topic title')
+
+todo: get_connected_component(startVertex, direction, depth)
+todo: get_minimal_topics()
+todo: get_maximal_topics()
 """
 import pyArango.connection as pyconn
 from pyArango.document import Document
@@ -25,7 +29,9 @@ PATH_TO_CONFIG = '/home/adrian/.ikconfig'
 COLL_NAMES = {'topics': 'Topics',
               'subtopic_links': 'SubtopicRelation'}
 GRAPH_NAMES = {'all_topics': 'TopicsGraph'}
-TOPIC_FIELDS = {'name': 'name', 'description': 'description'} 
+TOPIC_FIELDS = {'name': 'name',
+                'description': 'description',
+                'level': 'level'}
 LINK_FIELDS = {'note': 'note'}
 MAX_LENGTHS = {'topic_name': 50, 'topic_description': 1000}
 
@@ -101,11 +107,34 @@ def get_topic_by_name(db, topic_name, as_simple_query=False):
         return None
 
 
+def update_topic_levels(subtopic, supratopic_level):
+    if subtopic[TOPIC_FIELDS['level']] <= supratopic_level:
+        subtopic[TOPIC_FIELDS['level']] = supratopic_level + 1
+        raise NotImplementedError
+        subtopic.patch()
+        # todo: loop through children and call function recursively on each
+        # WARNING: if a single topic has two divergent branches of children which then merge down the line, this
+        # strategy will fail!
+        # a better strategy is to first get the list of all descendent nodes (with uniqueness enforced), and then update
+        # them all
+
+
+
 class StringVal(pvl.Validator):
     def validate(self, value):
         if type(value) is not str:
             raise ValidationError("Field value must be a string")
         return True
+
+
+class PosIntVal(pvl.Validator):
+    def validate(self, value):
+        if type(value) is not int:
+            raise ValidationError("Field value must be an int")
+        elif value < 0:
+            raise ValidationError("level should be greater than zero")
+        else:
+            return True
 
 
 class Topics(pcl.Collection):
@@ -124,12 +153,14 @@ class Topics(pcl.Collection):
     }
 
     _fields = {
-        'name': pcl.Field(validators=[pvl.NotNull(),
-                                      pvl.Length(2, MAX_LENGTHS['topic_name']),
-                                      StringVal()]),
-        'description': pcl.Field(validators=[pvl.NotNull(),
-                                             pvl.Length(4, MAX_LENGTHS['topic_description']),
-                                             StringVal()])
+        TOPIC_FIELDS['name']: pcl.Field(validators=[pvl.NotNull(),
+                                                    pvl.Length(2, MAX_LENGTHS['topic_name']),
+                                                    StringVal()]),
+        TOPIC_FIELDS['description']: pcl.Field(validators=[pvl.NotNull(),
+                                                           pvl.Length(4, MAX_LENGTHS['topic_description']),
+                                                           StringVal()]),
+        TOPIC_FIELDS['level']: pcl.Field(validators=[pvl.NotNull(),
+                                                     PosIntVal()])
     }
 
 
@@ -155,10 +186,11 @@ class UserInterface:
         self.db = ik_connect(config=conn_opts)
         self.topics_graph = self.db.graphs[GRAPH_NAMES['all_topics']]
 
-    def create_topic(self, name, descr):
+    def create_topic(self, name, descr, lvl=0):
         """
         :param name: topic name (see Topics._fields for constraints)
         :param descr: topic description (see Topics._fields for constraints)
+        :param lvl: (int) indicates depth of longest path to reach the topic from a minimal topic (level 0)
         :return: document if topic successfully created, otherwise None
         """
         if get_topic_by_name(self.db, name, as_simple_query=True):
@@ -169,7 +201,8 @@ class UserInterface:
                 COLL_NAMES['topics'],
                 {
                     TOPIC_FIELDS['name']: name,
-                    TOPIC_FIELDS['description']: descr
+                    TOPIC_FIELDS['description']: descr,
+                    TOPIC_FIELDS['level']: lvl
                 }
             )
             doc.save()
@@ -217,6 +250,9 @@ class UserInterface:
                 subtopic = get_topic_by_name(self.db, subtopic)
             self.topics_graph.link('SubtopicRelation', supratopic, subtopic, {})
 
+        # todo: update all levels
+        update_topic_levels(subtopic, supratopic[TOPIC_FIELDS['level']])
+
     def has_as_descendent(self, supra, sub):
         """
         True if sub is in the list of subtopic descendents of supra
@@ -254,7 +290,6 @@ class UserInterface:
         :param topic: any topic document
         :return: a graph
         """
-
         raise NotImplementedError
 
 # def doc_in_list(document, list_of_docs):
