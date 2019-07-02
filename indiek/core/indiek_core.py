@@ -14,27 +14,32 @@ Examples:
 todo: get_connected_component(startVertex, direction, depth)
 todo: get_minimal_topics()
 todo: get_maximal_topics()
+todo: use ik_connect() as context manager? Or UserInterface()? Don't forget the try/finally tool, nor contextlib
 """
+from contextlib import contextmanager
+
 import pyArango.connection as pyconn
-from pyArango.document import Document
+# from pyArango.document import Document
 import pyArango.collection as pcl
 from pyArango.graph import Graph, EdgeDefinition
 import pyArango.validation as pvl
 from pyArango.theExceptions import ValidationError
 import json
+import os
 
-PATH_TO_CONFIG = '/home/adrian/.ikconfig'
+PATH_TO_CONFIG = os.path.expanduser('~/.ikconfig')
 
 # keys are what I use in the code, values are what is used in the database
-COLL_NAMES = {'topics': 'Topics',
-              'subtopic_links': 'SubtopicRelation'}
-GRAPH_NAMES = {'all_topics': 'TopicsGraph'}
-TOPIC_FIELDS = {'name': 'name',
-                'description': 'description',
-                'level': 'level'}
-LINK_FIELDS = {'note': 'note'}
-MAX_LENGTHS = {'topic_name': 50, 'topic_description': 1000}
+DB_NAMES = {
+    'collections': {'topics': 'Topics', 'subtopic_links': 'SubtopicRelation'},
+    'graphs': {'all_topics': 'TopicsGraph'},
+    'fields': {
+        'topics': {'name': 'name', 'description': 'description'},
+        'subtopic_links': {'note': 'note'}
+    }
+}
 
+MAX_LENGTHS = {'topic_name': 50, 'topic_description': 1000}
 
 """
 ref for special collections:
@@ -42,82 +47,99 @@ https://github.com/ArangoDB-Community/pyArango/tree/5d9465cabca15a75477948c45bb5
 """
 
 
-def ik_connect(config='default'):
+@contextmanager
+def session(config='default', create_if_missing=True):
     """
-    The aim of this script is to:
+    The aim of this context manager (meant to be used in a with statement) is to:
         1. connect to ArangoDB with credentials fetched from a .json config file
-        2. check whether the 'ikdev' database and the 'topics' and 'links' collections exist
+        2. check whether the database is properly configured for indiek
     todo: accept on-the-fly configuration (no need to read from config file)
     """
     with open(PATH_TO_CONFIG) as f:
-        conf = json.load(f)[config+'_config']
+        conf = json.load(f)[config + '_config']
+
     conn = pyconn.Connection(username=conf['username'], password=conf['password'])
     db_name = conf['database']
 
-    # check appropriate db and collections exist
     if not conn.hasDatabase(db_name):
         raise LookupError(f"database {db_name} not found; either it doesn't exist or arangodb"
                           f" user {conf['username']} from your config file doesn't have proper permissions")
 
     db = conn[db_name]
 
-    if not db.hasCollection(COLL_NAMES['topics']):
-        print(f"collection {COLL_NAMES['topics']} not found in db {db.name}")
-        ans = input("would you like to create it? (y + ENTER for yes) ")
-        if ans == 'y':
-            db.createCollection(name=COLL_NAMES['topics'], className='Topics')
-            print(f"collection {COLL_NAMES['topics']} created")
+    def check_db_infrastructure(create_missing):
+        topic_coll = DB_NAMES['collections']['topics']
+        if not db.hasCollection(topic_coll):
+            print(f"collection {topic_coll} not found in db {db.name}")
+            if create_missing:
+                db.createCollection(name=topic_coll, className='Topics')
+                print(f"collection {topic_coll} created")
 
-#    db[COLL_NAMES['topics']].ensureFulltextIndex(list(TOPIC_FIELDS.values())) # somehow this fails
+        # somehow the following fails
+        #    db[COLL_NAMES['topics']].ensureFulltextIndex(list(TOPIC_FIELDS.values()))
 
-    if not db.hasCollection(COLL_NAMES['subtopic_links']):
-        print(f"collection {COLL_NAMES['subtopic_links']} not found in db {db.name}")
-        ans = input("would you like to create it? (y + ENTER for yes) ")
-        if ans == 'y':
-            db.createCollection(name=COLL_NAMES['subtopic_links'], className='SubtopicRelation')
-            print(f"collection {COLL_NAMES['subtopic_links']} created")
+        topic_links_coll = DB_NAMES['collections']['subtopic_links']
+        if not db.hasCollection(topic_links_coll):
+            print(f"collection {topic_links_coll} not found in db {db.name}")
+            if create_missing:
+                db.createCollection(name=topic_links_coll, className='SubtopicRelation')
+                print(f"collection {topic_links_coll} created")
 
-    if not db.hasGraph(GRAPH_NAMES['all_topics']):
-        print(f"database {db_name} has no graph named {GRAPH_NAMES['all_topics']}")
-        ans = input("would you like to create it? (y + ENTER for yes) ")
-        if ans == 'y':
-            db.createGraph(GRAPH_NAMES['all_topics'])
-            print(f"graph {GRAPH_NAMES['all_topics']} created")
+        graph_name = DB_NAMES['graphs']['all_topics']
+        if not db.hasGraph(graph_name):
+            print(f"database {db.name} has no graph named {graph_name}")
+            if create_missing:
+                db.createGraph(graph_name, createCollections=False)
+                print(f"graph {graph_name} created")
 
-    return db
+    check_db_infrastructure(create_if_missing)
+
+    try:
+        yield db
+    finally:
+        db.disconnectSession()
 
 
-def get_topic_by_name(db, topic_name, as_simple_query=False):
+# def db_session(f):
+#     """
+#     decorator that allows to wrap any function that requires a database instance into a 'with' statement
+#     :param f: a function that uses the kwarg 'database'; kwargs 'config' and 'create_if_missing' are passed to session()
+#                 if present.
+#     :return: decorated f
+#     """
+#     def f_with_session(*args, **kwargs):
+#         to_session = {}
+#         if 'config' in kwargs:
+#             to_session['config'] = kwargs['config']
+#         if 'create_if_missing' in kwargs:
+#             to_session['create_if_missing'] = kwargs['create_if_missing']
+#         with session(**to_session) as db:
+#             kwargs['database'] = db
+#             result = f(*args, **kwargs)
+#         return result
+#     return f_with_session
+
+
+def get_topic_by_name(database, topic_name, as_simple_query=False):
     """
     fetches topic if exists, false otherwise
     todo: figure out what batchSize does
     Args:
-        db: DBHandle
+        database: DBHandle or Database from pyArango module
         topic_name: string, name of topic
         as_simple_query: bool, if true returns SimpleQuery object, if false (default) returns Document object
     Returns:
         pyArango.query.SimpleQuery OR Topics document
     """
-    simple_query = db[COLL_NAMES['topics']].fetchByExample({TOPIC_FIELDS['name']: topic_name}, batchSize=100)
+    topic_coll = DB_NAMES['collections']['topics']
+    name_field = DB_NAMES['fields']['topics']['name']
+    simple_query = database[topic_coll].fetchByExample({name_field: topic_name}, batchSize=100)
     if as_simple_query:
         return simple_query
     if simple_query.count > 0:
         return simple_query[0]
     else:
         return None
-
-
-def update_topic_levels(subtopic, supratopic_level):
-    if subtopic[TOPIC_FIELDS['level']] <= supratopic_level:
-        subtopic[TOPIC_FIELDS['level']] = supratopic_level + 1
-        raise NotImplementedError
-        subtopic.patch()
-        # todo: loop through children and call function recursively on each
-        # WARNING: if a single topic has two divergent branches of children which then merge down the line, this
-        # strategy will fail!
-        # a better strategy is to first get the list of all descendent nodes (with uniqueness enforced), and then update
-        # them all
-
 
 
 class StringVal(pvl.Validator):
@@ -153,14 +175,13 @@ class Topics(pcl.Collection):
     }
 
     _fields = {
-        TOPIC_FIELDS['name']: pcl.Field(validators=[pvl.NotNull(),
-                                                    pvl.Length(2, MAX_LENGTHS['topic_name']),
-                                                    StringVal()]),
-        TOPIC_FIELDS['description']: pcl.Field(validators=[pvl.NotNull(),
-                                                           pvl.Length(4, MAX_LENGTHS['topic_description']),
-                                                           StringVal()]),
-        TOPIC_FIELDS['level']: pcl.Field(validators=[pvl.NotNull(),
-                                                     PosIntVal()])
+        DB_NAMES['fields']['topics']['name']: pcl.Field(validators=[pvl.NotNull(),
+                                                                    pvl.Length(2, MAX_LENGTHS['topic_name']),
+                                                                    StringVal()]),
+        DB_NAMES['fields']['topics']['description']: pcl.Field(validators=[pvl.NotNull(),
+                                                                           pvl.Length(4,
+                                                                                      MAX_LENGTHS['topic_description']),
+                                                                           StringVal()]),
     }
 
 
@@ -172,21 +193,21 @@ class SubtopicRelation(pcl.Edges):
 class TopicsGraph(Graph):
     """graph of all topics in the database"""
     _edgeDefinitions = [EdgeDefinition("SubtopicRelation",
-                                       fromCollections=COLL_NAMES["topics"],
-                                       toCollections=COLL_NAMES["topics"])]
+                                       fromCollections=[DB_NAMES['collections']['topics']],
+                                       toCollections=[DB_NAMES['collections']['topics']])]
     _orphanedCollections = []
 
 
 class UserInterface:
     """
-    Class through which all user interactions with ik database occurs. Should be used as a session manager, i.e. each
-    instance is a separate ik user session with its own connection to ik's database.
+    Class through which all user interactions with ik database occurs. Should be used within a with block that provides
+    the database as a context, via the session module function.
     """
-    def __init__(self, conn_opts='default'):
-        self.db = ik_connect(config=conn_opts)
-        self.topics_graph = self.db.graphs[GRAPH_NAMES['all_topics']]
+    def __init__(self, db):
+        self.db = db
+        self.topics_graph = self.db.graphs[DB_NAMES['graphs']['all_topics']]
 
-    def create_topic(self, name, descr, lvl=0):
+    def create_topic(self, name, descr):
         """
         :param name: topic name (see Topics._fields for constraints)
         :param descr: topic description (see Topics._fields for constraints)
@@ -198,11 +219,10 @@ class UserInterface:
             doc = None
         else:
             doc = self.topics_graph.createVertex(
-                COLL_NAMES['topics'],
+                DB_NAMES['collections']['topics'],
                 {
-                    TOPIC_FIELDS['name']: name,
-                    TOPIC_FIELDS['description']: descr,
-                    TOPIC_FIELDS['level']: lvl
+                    DB_NAMES['fields']['topics']['name']: name,
+                    DB_NAMES['fields']['topics']['description']: descr,
                 }
             )
             doc.save()
@@ -219,13 +239,13 @@ class UserInterface:
         """
         sep_line = '----------------------'
 
-        simple_query = self.db[COLL_NAMES['topics']].fetchAll()
+        simple_query = self.db[DB_NAMES['collections']['topics']].fetchAll()
 
         print(f'LIST OF {simple_query.count} TOPICS IN DB')
 
         for topic in simple_query:
-            name_key = TOPIC_FIELDS['name']
-            description_key = TOPIC_FIELDS['description']
+            name_key = DB_NAMES['fields']['topics']['name']
+            description_key = DB_NAMES['fields']['topics']['description']
             print(f"\n{name_key}: {topic[name_key]}\n")
             print(f"{description_key}:\n{topic[description_key]}")
             print(sep_line)
@@ -237,12 +257,13 @@ class UserInterface:
         :param subtopic: topic document or topic name
         :return:
         """
+        name_field = DB_NAMES['fields']['topics']['name']
         if self.has_as_descendent(supratopic, subtopic):
-            print(f"topic {subtopic[TOPIC_FIELDS['name']]} is already a descendent "
-                  f"of topic {supratopic[TOPIC_FIELDS['name']]}. No new link created.")
+            print(f"topic {subtopic[name_field]} is already a descendent "
+                  f"of topic {supratopic[name_field]}. No new link created.")
         elif self.has_as_descendent(subtopic, supratopic):
-            print(f"topic {subtopic[TOPIC_FIELDS['name']]} is already an ancestor "
-                  f"of topic {supratopic[TOPIC_FIELDS['name']]}. No new link created to avoid loop.")
+            print(f"topic {subtopic[name_field]} is already an ancestor "
+                  f"of topic {supratopic[name_field]}. No new link created to avoid loop.")
         else:
             if isinstance(supratopic, str):
                 supratopic = get_topic_by_name(self.db, supratopic)
@@ -251,7 +272,7 @@ class UserInterface:
             self.topics_graph.link('SubtopicRelation', supratopic, subtopic, {})
 
         # todo: update all levels
-        update_topic_levels(subtopic, supratopic[TOPIC_FIELDS['level']])
+        # update_topic_levels(subtopic, supratopic[TOPIC_FIELDS['level']])
 
     def has_as_descendent(self, supra, sub):
         """
@@ -265,7 +286,7 @@ class UserInterface:
 
         q = self.topics_graph.traverse(supra, direction="outbound")
 
-        n = TOPIC_FIELDS['name']
+        n = DB_NAMES['fields']['topics']['name']
         list_of_descendents = [d[n] for d in q['visited']['vertices']]
 
         if isinstance(sub, str):
@@ -280,10 +301,12 @@ class UserInterface:
         Doesn't delete collections
         :return:
         """
-        self.db[COLL_NAMES['topics']].empty()
-        self.db[COLL_NAMES['subtopic_links']].empty()
+        simple_query = self.db[DB_NAMES['collections']['topics']].fetchAll()
 
-    def create_topic_genealogy(self, topic):
+        for topic in simple_query:
+            self.topics_graph.deleteVertex(topic)
+
+    def get_topic_genealogy(self, topic):
         """
         my idea for this method is to create a graph in the database that corresponds to all the genealogy
         (ancestors and descendents) of a topic
