@@ -97,7 +97,7 @@ def session(config='default', create_if_missing=True):
     try:
         yield db
     finally:
-        db.disconnectSession()
+        conn.disconnectSession()
 
 
 # def db_session(f):

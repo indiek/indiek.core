@@ -44,15 +44,27 @@ List of things to test:
 """
 
 
+def session_call(config, e):
+    try:
+        with ikcore.session(config=config):
+            pass
+    except e:
+        raise
+
+
 class TestDBInfrastructure(unittest.TestCase):
     """
     when a connection to the db is started
     """
     def test_faulty_connexion(self):
-        self.assertRaises(ConnectionError, ikcore.session, config='missing_user')
-        self.assertRaises(ConnectionError, ikcore.session, config='wrong_pwd')
-        self.assertRaises(LookupError, ikcore.session, config='missing_db')
-        self.assertRaises(LookupError, ikcore.session, config='unauthorized_user')
+        self.assertRaises(ConnectionError,
+                          session_call, 'missing_user', ConnectionError)
+        self.assertRaises(ConnectionError,
+                          session_call, 'wrong_pwd', ConnectionError)
+        self.assertRaises(LookupError,
+                          session_call, 'missing_db', LookupError)
+        self.assertRaises(LookupError,
+                          session_call, 'unauthorized_user', LookupError)
 
     def test_db_setup(self):
         """
@@ -67,6 +79,8 @@ class TestDBInfrastructure(unittest.TestCase):
             for gr in ikcore.DB_NAMES['graphs'].values():
                 self.assertTrue(db.hasGraph(gr))
             db.dropAllCollections()
+            db.reload()
+        # with ikcore.session(config=IK_CONFIG, create_if_missing=False) as db:
             for coll in ikcore.DB_NAMES['collections'].values():
                 self.assertFalse(db.hasCollection(coll))
             for gr in ikcore.DB_NAMES['graphs'].values():
