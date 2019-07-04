@@ -52,6 +52,43 @@ def session_call(config, e):
         raise
 
 
+def create_test_topics_graph(db):
+    sess = ikcore.UserInterface(db)
+    # create a basic graph (may already exist...)
+    t1 = sess.create_topic('t1', 'minimal element')
+    if t1 is None:
+        t1 = ikcore.get_topic_by_name(sess.db, 't1')
+
+    t2 = sess.create_topic('t2', 'same level as t1')
+    if t2 is None:
+        t2 = ikcore.get_topic_by_name(sess.db, 't2')
+
+    t3 = sess.create_topic('t3', 'child of t1 and t2')
+    if t3 is None:
+        t3 = ikcore.get_topic_by_name(sess.db, 't3')
+
+    t4 = sess.create_topic('t4', 'child of t3 and t5')
+    if t4 is None:
+        t4 = ikcore.get_topic_by_name(sess.db, 't4')
+
+    t5 = sess.create_topic('t5', 'minimal element')
+    if t5 is None:
+        t5 = ikcore.get_topic_by_name(sess.db, 't5')
+
+    # whole two_valid block might be redundant
+    def two_valid(a, b):
+        return (a is not None) and (b is not None)
+
+    if two_valid(t1, t3):
+        sess.set_subtopic(t1, t3)
+    if two_valid(t2, t3):
+        sess.set_subtopic(t2, t3)
+    if two_valid(t3, t4):
+        sess.set_subtopic(t3, t4)
+    if two_valid(t4, t5):
+        sess.set_subtopic(t5, t4)
+
+
 class TestDBInfrastructure(unittest.TestCase):
     """
     when a connection to the db is started
@@ -90,7 +127,10 @@ class TestDBInfrastructure(unittest.TestCase):
 
 class TestQueries(unittest.TestCase):
     def setUp(self):
-        ikcore.db_setup(TEST_CONFIG)
+        ikcore.db_setup(TEST_CONFIG)  # create indiek infrastructure in arangodb
+
+        with ikcore.session(config=TEST_CONFIG) as db:  # create a test graph of topics
+            create_test_topics_graph(db)
 
     def tearDown(self):
         ikcore.db_erase(TEST_CONFIG)
@@ -120,40 +160,12 @@ class TestQueries(unittest.TestCase):
     def test_has_as_descendent(self):
         with ikcore.session(config=TEST_CONFIG) as db:
             sess = ikcore.UserInterface(db)
-            # create a basic graph (may already exist...)
-            t1 = sess.create_topic('t1', 'minimal element')
-            if t1 is None:
-                t1 = ikcore.get_topic_by_name(sess.db, 't1')
-
-            t2 = sess.create_topic('t2', 'same level as t1')
-            if t2 is None:
-                t2 = ikcore.get_topic_by_name(sess.db, 't2')
-
-            t3 = sess.create_topic('t3', 'child of t1 and t2')
-            if t3 is None:
-                t3 = ikcore.get_topic_by_name(sess.db, 't3')
-
-            t4 = sess.create_topic('t4', 'child of t3 and t5')
-            if t4 is None:
-                t4 = ikcore.get_topic_by_name(sess.db, 't4')
-
-            t5 = sess.create_topic('t5', 'minimal element')
-            if t5 is None:
-                t5 = ikcore.get_topic_by_name(sess.db, 't5')
-
-            # whole two_valid block might be redundant
-            def two_valid(a, b):
-                return (a is not None) and (b is not None)
-
-            if two_valid(t1, t3):
-                sess.set_subtopic(t1, t3)
-            if two_valid(t2, t3):
-                sess.set_subtopic(t2, t3)
-            if two_valid(t3, t4):
-                sess.set_subtopic(t3, t4)
-            if two_valid(t4, t5):
-                sess.set_subtopic(t5, t4)
-
+            t1 = ikcore.get_topic_by_name(sess.db, 't1')
+            t2 = ikcore.get_topic_by_name(sess.db, 't2')
+            t3 = ikcore.get_topic_by_name(sess.db, 't3')
+            t4 = ikcore.get_topic_by_name(sess.db, 't4')
+            t5 = ikcore.get_topic_by_name(sess.db, 't5')
+            
             # assert statements
             self.assertTrue(sess.has_as_descendent(t1, t3))
             self.assertTrue(sess.has_as_descendent(t2, t3))
