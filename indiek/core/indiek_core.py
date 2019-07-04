@@ -48,7 +48,7 @@ https://github.com/ArangoDB-Community/pyArango/tree/5d9465cabca15a75477948c45bb5
 
 
 @contextmanager
-def session(config='default', create_if_missing=True):
+def session(config='default', create_if_missing=False):
     """
     The aim of this context manager (meant to be used in a with statement) is to:
         1. connect to ArangoDB with credentials fetched from a .json config file
@@ -68,6 +68,11 @@ def session(config='default', create_if_missing=True):
     db = conn[db_name]
 
     def check_db_infrastructure(create_missing):
+        """
+        todo: provide option to delete useless collections (and graphs?)
+        :param create_missing: (bool) if True, creates required collections and graphs for IndieK
+        :return: None
+        """
         topic_coll = DB_NAMES['collections']['topics']
         if not db.hasCollection(topic_coll):
             print(f"collection {topic_coll} not found in db {db.name}")
@@ -100,6 +105,26 @@ def session(config='default', create_if_missing=True):
         conn.disconnectSession()
 
 
+def db_setup(config_str):
+    """
+    Convenience function to make sure the database corresponding to the passed configuration string is set up.
+    :param config_str: should match the config name in the config file (PATH_TO_CONFIG), e.g. 'default', 'test_db', etc.
+    :return: None
+    """
+    with session(config=config_str, create_if_missing=True):
+        pass
+
+
+def db_erase(config_str):
+    """
+    erases (drops) collections and graphs corresponding to indiek in the database mentioned in config_str
+    :param config_str: should match the config name in the config file (PATH_TO_CONFIG), e.g. 'default', 'test_db', etc.
+    :return:
+    """
+    with session(config=config_str, create_if_missing=False) as db:
+        db.dropAllCollections()
+
+
 # def db_session(f):
 #     """
 #     decorator that allows to wrap any function that requires a database instance into a 'with' statement
@@ -122,7 +147,7 @@ def session(config='default', create_if_missing=True):
 
 def get_topic_by_name(database, topic_name, as_simple_query=False):
     """
-    fetches topic if exists, false otherwise
+    fetches topic if exists, returns None otherwise
     todo: figure out what batchSize does
     Args:
         database: DBHandle or Database from pyArango module
@@ -143,23 +168,32 @@ def get_topic_by_name(database, topic_name, as_simple_query=False):
 
 
 class StringVal(pvl.Validator):
+    """
+    string validator for pyArango custom collections
+    """
     def validate(self, value):
         if type(value) is not str:
             raise ValidationError("Field value must be a string")
         return True
 
 
-class PosIntVal(pvl.Validator):
-    def validate(self, value):
-        if type(value) is not int:
-            raise ValidationError("Field value must be an int")
-        elif value < 0:
-            raise ValidationError("level should be greater than zero")
-        else:
-            return True
+# class PosIntVal(pvl.Validator):
+#     """
+#     positive integer validator for pyArango custom collections
+#     """
+#     def validate(self, value):
+#         if type(value) is not int:
+#             raise ValidationError("Field value must be an int")
+#         elif value < 0:
+#             raise ValidationError("level should be greater than zero")
+#         else:
+#             return True
 
 
 class Topics(pcl.Collection):
+    """
+    Document collection for pyArango corresponding to topics
+    """
     # not convinced the _properties below are all necessary
     _properties = {
         "keyOptions": {
@@ -191,7 +225,7 @@ class SubtopicRelation(pcl.Edges):
 
 
 class TopicsGraph(Graph):
-    """graph of all topics in the database"""
+    """graph of all topics in the database. All topic management occurs through this graph."""
     _edgeDefinitions = [EdgeDefinition("SubtopicRelation",
                                        fromCollections=[DB_NAMES['collections']['topics']],
                                        toCollections=[DB_NAMES['collections']['topics']])]
@@ -201,7 +235,7 @@ class TopicsGraph(Graph):
 class UserInterface:
     """
     Class through which all user interactions with ik database occurs. Should be used within a with block that provides
-    the database as a context, via the session module function.
+    the database as a context, via the session() module function.
     """
     def __init__(self, db):
         self.db = db
@@ -211,7 +245,6 @@ class UserInterface:
         """
         :param name: topic name (see Topics._fields for constraints)
         :param descr: topic description (see Topics._fields for constraints)
-        :param lvl: (int) indicates depth of longest path to reach the topic from a minimal topic (level 0)
         :return: document if topic successfully created, otherwise None
         """
         if get_topic_by_name(self.db, name, as_simple_query=True):
@@ -256,6 +289,9 @@ class UserInterface:
         :param supratopic: topic document or topic name
         :param subtopic: topic document or topic name
         :return:
+
+        todo: check that topic1 and topic2 are 'up-to-date' before saving the link
+        todo: get genealogy of both topics and warn the user if genalogies have non-zero intersection
         """
         name_field = DB_NAMES['fields']['topics']['name']
         if self.has_as_descendent(supratopic, subtopic):
@@ -270,9 +306,6 @@ class UserInterface:
             if isinstance(subtopic, str):
                 subtopic = get_topic_by_name(self.db, subtopic)
             self.topics_graph.link('SubtopicRelation', supratopic, subtopic, {})
-
-        # todo: update all levels
-        # update_topic_levels(subtopic, supratopic[TOPIC_FIELDS['level']])
 
     def has_as_descendent(self, supra, sub):
         """
@@ -306,14 +339,16 @@ class UserInterface:
         for topic in simple_query:
             self.topics_graph.deleteVertex(topic)
 
-    def get_topic_genealogy(self, topic):
+    def get_connected_component(self, topic, direction, depth):
         """
         my idea for this method is to create a graph in the database that corresponds to all the genealogy
         (ancestors and descendents) of a topic
         :param topic: any topic document
-        :return: a graph
+        :param direction:
+        :param depth:
+        :return: a list of vertices
         """
-        raise NotImplementedError
+
 
 # def doc_in_list(document, list_of_docs):
 #     doc_id = document['_id']
@@ -329,9 +364,7 @@ class UserInterface:
 #
 # def create_subtopic_link(db, topic1, topic2):
 #     """
-#     todo: check that topic1 and topic2 are 'up-to-date' before saving the link
-#     todo: use graph API in this function
-#     todo: get genealogy
+
 #     :param db:
 #     :param topic1: topic obj
 #     :param topic2: topic obj

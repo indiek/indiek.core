@@ -7,7 +7,7 @@ from pyArango.theExceptions import ConnectionError, ValidationError, InvalidDocu
 sys.path.append('../indiek/core/')
 import indiek_core as ikcore
 
-IK_CONFIG = 'test_db'
+TEST_CONFIG = 'test_db'
 """
 List of things to test:
 -    Connection
@@ -67,20 +67,21 @@ class TestDBInfrastructure(unittest.TestCase):
                           session_call, 'unauthorized_user', LookupError)
 
     def test_db_setup(self):
-        """
-        connects to test_db
-        verifies no collections exist
-        uses ik functionalities to create them (and graphs)
-        deletes them
-        """
-        with ikcore.session(config=IK_CONFIG, create_if_missing=True) as db:
+        ikcore.db_setup(TEST_CONFIG)
+
+        with ikcore.session(config=TEST_CONFIG, create_if_missing=False) as db:
             for coll in ikcore.DB_NAMES['collections'].values():
                 self.assertTrue(db.hasCollection(coll))
             for gr in ikcore.DB_NAMES['graphs'].values():
                 self.assertTrue(db.hasGraph(gr))
+
             db.dropAllCollections()
             db.reload()
-        # with ikcore.session(config=IK_CONFIG, create_if_missing=False) as db:
+
+    def test_db_erase(self):
+        ikcore.db_erase(TEST_CONFIG)
+
+        with ikcore.session(config=TEST_CONFIG, create_if_missing=False) as db:
             for coll in ikcore.DB_NAMES['collections'].values():
                 self.assertFalse(db.hasCollection(coll))
             for gr in ikcore.DB_NAMES['graphs'].values():
@@ -88,6 +89,12 @@ class TestDBInfrastructure(unittest.TestCase):
 
 
 class TestQueries(unittest.TestCase):
+    def setUp(self):
+        ikcore.db_setup(TEST_CONFIG)
+
+    def tearDown(self):
+        ikcore.db_erase(TEST_CONFIG)
+
     def test_list_topics(self):
         """
         add a topic and check it is in the output
@@ -99,7 +106,7 @@ class TestQueries(unittest.TestCase):
         topic_name = 'test_topic'
         topic_descr = 'descr of test topic'
 
-        with ikcore.session(config=IK_CONFIG) as db:
+        with ikcore.session(config=TEST_CONFIG) as db:
             sess = ikcore.UserInterface(db)
             topic = sess.create_topic(topic_name, topic_descr)
             sess.list_topics()      # Call function to test
@@ -111,7 +118,7 @@ class TestQueries(unittest.TestCase):
         self.assertIn(topic_descr, captured_output.getvalue())
 
     def test_has_as_descendent(self):
-        with ikcore.session(config=IK_CONFIG) as db:
+        with ikcore.session(config=TEST_CONFIG) as db:
             sess = ikcore.UserInterface(db)
             # create a basic graph (may already exist...)
             t1 = sess.create_topic('t1', 'minimal element')
@@ -164,10 +171,25 @@ class TestQueries(unittest.TestCase):
             self.assertFalse(sess.has_as_descendent(t2, t5))
             self.assertFalse(sess.has_as_descendent(t5, t2))
 
-            sess.clear_topics()
+            # sess.clear_topics()
+
+    def test_get_connected_component(self):
+        """
+        todo: single vertex for unconnected topic
+        todo: two vertices down for direction 'outbound'
+        todo: three vertices up for direction 'inbound'
+        todo: radius for
+        :return:
+        """
 
 
 class TestTopicFieldValidation(unittest.TestCase):
+    def setUp(self):
+        ikcore.db_setup(TEST_CONFIG)
+
+    def tearDown(self):
+        ikcore.db_erase(TEST_CONFIG)
+
     def test_topic_name(self):
         """
         name is empty string
@@ -176,7 +198,7 @@ class TestTopicFieldValidation(unittest.TestCase):
         name not a string
         name contains space or tabs
         """
-        with ikcore.session(config=IK_CONFIG) as db:
+        with ikcore.session(config=TEST_CONFIG) as db:
             sess = ikcore.UserInterface(db)
             self.assertRaises(InvalidDocument, sess.create_topic, '', 'descr')
             self.assertRaises(InvalidDocument, sess.create_topic, 'A', 'too short')
