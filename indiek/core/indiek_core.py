@@ -22,7 +22,7 @@ import pyArango.validation as pvl
 from pyArango.theExceptions import ValidationError
 import json
 import os
-# import pprint
+import pprint
 
 PATH_TO_CONFIG = os.path.expanduser('~/.ikconfig')
 
@@ -171,7 +171,7 @@ def get_topic_by_name(database, topic_name, as_simple_query=False):
         return None
 
 
-def display(elements, title, separator='==========', hide_privates=True):
+def display(elements, title, separator='==========', hide_privates=True, only_fields=None):
     """
     todo: accept graph-like argument
     todo: accept optional argument to only display specific fields
@@ -179,17 +179,50 @@ def display(elements, title, separator='==========', hide_privates=True):
     :param elements: iterable of pyarango docs, (e.g. simple query object)
     :param title: str to display before anything else
     :param separator: str to display in between elements
-    :param hide_privates: bool. If True, private doc attributes not shown
+    :param hide_privates: bool. If True, private doc attributes not shown. But interaction with only_fields arg are
+                          complex, read below
+    :param only_fields: list of strings containing field names for document store.
+                        case1: only_fields is None; then hide_privates has highest authority
+                        case2: only_fields is not None and only_fields contains no private field; then, all fields in
+                          only_fields are displayed, and private fields are displayed according to hide_privates value
+                        case3: only_fields contains a private field and hide_privates is False, then all private fields
+                          are displayed, as well as the non-private fields from only_fields
+                        case4: only_fields contains a private field and hide_privates is True, then only the fields in
+                          only_fields are displayed.
     :return:
     """
     print(title)
     for el in elements:
+        def delete_field(key):
+            """
+            :param key: key from store
+            :return: True if key-value pair should be deleted from store
+            """
+            # two conditions in which field should be deleted, in most cases
+            hide_privates_cond = hide_privates and (key in el.privates)
+            only_fields_cond = (only_fields is not None) and (key not in only_fields)
+
+            if only_fields is None:
+                return hide_privates_cond  # case 1
+            if only_fields is not None:
+                assert len(set(only_fields)) == len(only_fields), "duplicate fields in argument only_fields"
+                # bool below is True if only_fields contains no private field
+                null_intersection = not bool(set(only_fields).intersection(set(el.privates)))
+                if null_intersection:  # case 2
+                    if hide_privates_cond:
+                        return True
+                    if only_fields_cond:
+                        return True
+                    return False
+                if hide_privates:
+                    return only_fields_cond  # case 4
+                return key not in set(only_fields).union(set(el.privates))
+
         content = el.getStore()
-        if hide_privates:
-            for k in el.privates:
-                del content[k]
+
         for k, v in content.items():
-            print(k, ': ', v)
+            if not delete_field(k):
+                print(k + ': ' + v)
         print(separator)
 
 

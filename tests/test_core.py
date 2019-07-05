@@ -43,6 +43,7 @@ List of things to test:
 -        compound queries (with filters on several levels)
 -    Workspace?
 """
+# todo: test display
 
 
 class GraphForTests:
