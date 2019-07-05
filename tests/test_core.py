@@ -47,7 +47,8 @@ List of things to test:
 
 class GraphForTests:
     minimal = ['t1', 't2', 't5', 't7']
-    maximal = ['t6', 't7']
+    maximal = ['t7', 't9']
+    singleton = list(set(minimal).intersection(maximal))
 
     @staticmethod
     def create_test_topics_graph(db):
@@ -129,6 +130,22 @@ def session_call(config, e):
             pass
     except e:
         raise
+
+
+def topics_set(list_of_topics):
+    return set([ikcore.extract_doc_privates(d) for d in list_of_topics])
+
+
+def from_names_to_docs(list_of_topic_names, db):
+    return [ikcore.get_topic_by_name(db, n) for n in list_of_topic_names]
+
+
+def print_unequal_sets(s1, s2, query_num=None):
+    if s1 != s2:
+        if query_num:  # won't do anything if query_num is None or 0
+            print('unequal sets in query ', query_num)
+        pprint.pprint(s1)
+        pprint.pprint(s2)
 
 
 class TestDBInfrastructure(unittest.TestCase):
@@ -248,12 +265,6 @@ class TestQueries(unittest.TestCase):
             t8 = ikcore.get_topic_by_name(sess.db, 't8')
             t9 = ikcore.get_topic_by_name(sess.db, 't9')
 
-            def topics_set(list_of_topics):
-                return set([ikcore.extract_doc_privates(d) for d in list_of_topics])
-
-            def from_names_to_docs(list_of_topic_names):
-                return [ikcore.get_topic_by_name(sess.db, n) for n in list_of_topic_names]
-
             def perform_checks(list1, list2, qid):
                 if len(list1) != len(list2):
                     print('unequal lists in query ', qid)
@@ -262,13 +273,10 @@ class TestQueries(unittest.TestCase):
 
                 self.assertEqual(len(list1), len(list2))
 
-                set1 = topics_set(from_names_to_docs(list1))
-                set2 = topics_set(from_names_to_docs(list2))
+                set1 = topics_set(from_names_to_docs(list1, sess.db))
+                set2 = topics_set(from_names_to_docs(list2, sess.db))
 
-                if set1 != set2:
-                    pprint.pprint('unequal sets in query ', qid)
-                    pprint.pprint(set1)
-                    pprint.pprint(set2)
+                print_unequal_sets(set1, set2, qid)
 
                 self.assertEqual(set1, set2)
 
@@ -292,11 +300,38 @@ class TestQueries(unittest.TestCase):
                 {'query': sess.get_connected_component(t4, direction='inbound'),             # query 9
                  'correct': ['t1', 't2', 't3', 't4', 't5']},
                 {'query': sess.get_connected_component(t4, direction='outbound'),            # query 10
-                 'correct': ['t4', 't6', 't8', 't9']}
+                 'correct': ['t4', 't6', 't8', 't9']},
+                {'query': sess.get_connected_component(t3, direction='any', depth=0),        # query 11
+                 'correct': ['t3']},
+                {'query': sess.get_connected_component(t3, direction='outbound', depth=0),   # query 12
+                 'correct': ['t3']}
             ]
 
             for qnum, pair in enumerate(to_check, start=1):
                 perform_checks(pair['query'], pair['correct'], qnum)
+
+    def test_get_extremal_topics(self):
+        with ikcore.session(config=TEST_CONFIG) as db:
+            sess = ikcore.UserInterface(db)
+            self.assertRaises(ValueError, sess.get_extremal_topics, kind='wrong arg')
+            self.assertRaises(ValueError, sess.get_extremal_topics, kind=0)
+
+            minimal = sess.get_extremal_topics(kind='minimal')
+            correct_min_set = topics_set(from_names_to_docs(GraphForTests.minimal, sess.db))
+            # print([d['name'] for d in minimal])
+            # print(GraphForTests.minimal)
+            print_unequal_sets(topics_set(minimal), correct_min_set, 1)
+            self.assertEqual(topics_set(minimal), correct_min_set)
+
+            maximal = sess.get_extremal_topics(kind='maximal')
+            correct_max_set = topics_set(from_names_to_docs(GraphForTests.maximal, sess.db))
+            print_unequal_sets(topics_set(maximal), correct_max_set, 2)
+            self.assertEqual(topics_set(maximal), correct_max_set)
+
+            singletons = sess.get_extremal_topics(kind='singleton')
+            correct_singleton_set = topics_set(from_names_to_docs(GraphForTests.singleton, sess.db))
+            print_unequal_sets(topics_set(singletons), correct_singleton_set, 3)
+            self.assertEqual(topics_set(singletons), correct_singleton_set)
 
 
 class TestTopicFieldValidation(unittest.TestCase):

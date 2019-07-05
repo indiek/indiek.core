@@ -11,10 +11,7 @@ Examples:
     >>> if topic1 is None:
     ...     topic1 = get_topic_by_name(sess.db, 'topic title')
 
-todo: get_connected_component(startVertex, direction, depth)
-todo: get_minimal_topics()
-todo: get_maximal_topics()
-todo: use ik_connect() as context manager? Or UserInterface()? Don't forget the try/finally tool, nor contextlib
+todo: get_extremal_topics(kind='minimal')
 """
 from contextlib import contextmanager
 
@@ -374,6 +371,24 @@ class UserInterface:
                     f"RETURN v.{name_field}"
             return self.db.AQLQuery(q_str, rawResults=True)
 
+    def get_extremal_topics(self, kind='minimal'):
+        simple_query = self.db[DB_NAMES['collections']['topics']].fetchAll()
+
+        if kind == 'minimal':
+            dirr = 'inbound'
+        elif kind == 'maximal':
+            dirr = 'outbound'
+        elif kind == 'singleton':
+            dirr = 'any'
+        else:
+            raise ValueError("Invalid 'kind' argument, expects 'minimal', 'maximal' or 'singleton'")
+
+        topic_list = []
+        for t in simple_query:
+            if len(self.get_connected_component(t, direction=dirr, depth=1)) == 1:
+                topic_list.append(t)
+
+        return topic_list
 
 
 # def doc_in_list(document, list_of_docs):
