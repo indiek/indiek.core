@@ -19,7 +19,7 @@ todo: use ik_connect() as context manager? Or UserInterface()? Don't forget the 
 from contextlib import contextmanager
 
 import pyArango.connection as pyconn
-# from pyArango.document import Document
+from pyArango.document import Document
 import pyArango.collection as pcl
 from pyArango.graph import Graph, EdgeDefinition
 import pyArango.validation as pvl
@@ -144,6 +144,13 @@ def db_erase(config_str):
 #         return result
 #     return f_with_session
 
+def equal_docs(d1, d2):
+    return [d1[k] for k in d1.privates] == [d2[k] for k in d2.privates]
+
+
+def extract_doc_privates(d):
+    return tuple([d[k] for k in d.privates])
+
 
 def get_topic_by_name(database, topic_name, as_simple_query=False):
     """
@@ -188,6 +195,12 @@ class StringVal(pvl.Validator):
 #             raise ValidationError("level should be greater than zero")
 #         else:
 #             return True
+
+# todo: do I need my own document class? Main use case would be to use _id, _key and _rev for comparison with __eq__
+# class IkDocument(Document):
+#     def __init__(self, pyarango_doc):
+#         self.doc = pyarango_doc
+#         self.ik_id = tuple(self[k] for k in self.privates)
 
 
 class Topics(pcl.Collection):
@@ -317,14 +330,12 @@ class UserInterface:
         if isinstance(supra, str):
             supra = get_topic_by_name(self.db, supra)
 
-        q = self.topics_graph.traverse(supra, direction="outbound")
-
-        n = DB_NAMES['fields']['topics']['name']
-        list_of_descendents = [d[n] for d in q['visited']['vertices']]
+        list_of_descendents = self.get_connected_component(supra, direction='outbound')
 
         if isinstance(sub, str):
             to_return = sub in list_of_descendents
         else:
+            n = DB_NAMES['fields']['topics']['name']
             to_return = sub[n] in list_of_descendents
         return to_return
 
@@ -339,7 +350,7 @@ class UserInterface:
         for topic in simple_query:
             self.topics_graph.deleteVertex(topic)
 
-    def get_connected_component(self, topic, direction, depth):
+    def get_connected_component(self, topic, direction='outbound', depth=None):
         """
         my idea for this method is to create a graph in the database that corresponds to all the genealogy
         (ancestors and descendents) of a topic
@@ -347,7 +358,22 @@ class UserInterface:
         :param direction:
         :param depth:
         :return: a list of vertices
+
+        todo: control for duplicates in returned list?
         """
+        name_field = DB_NAMES['fields']['topics']['name']
+        if depth is None:
+            q = self.topics_graph.traverse(topic, direction=direction)
+
+            return [d[name_field] for d in q['visited']['vertices']]
+        else:
+            graph_name = DB_NAMES['graphs']['all_topics']
+
+            q_str = f"FOR v IN 0..{depth} {direction.upper()} '{topic._id}' " \
+                    f"GRAPH '{graph_name}' " \
+                    f"RETURN v.{name_field}"
+            return self.db.AQLQuery(q_str, rawResults=True)
+
 
 
 # def doc_in_list(document, list_of_docs):
