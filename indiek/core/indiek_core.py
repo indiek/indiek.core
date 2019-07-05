@@ -5,13 +5,12 @@ IndieK module containing core functionalities for DB connection and BLL
         b) gather topics and links into arbitrary graphs
 
 Examples:
-    >>> sess = UserInterface()
-    >>> sess.list_topics()
-    >>> topic1 = sess.create_topic('topic title', 'topic description')
-    >>> if topic1 is None:
-    ...     topic1 = get_topic_by_name(sess.db, 'topic title')
-
-todo: get_extremal_topics(kind='minimal')
+    >>> with session() as db:
+    ...     sess = UserInterface(db)
+    ...     topic1 = sess.create_topic('topic title', 'topic description')
+    ...     if topic1 is None:
+    ...         topic1 = get_topic_by_name(sess.db, 'topic title')
+    ...     sess.display(topic1)
 """
 from contextlib import contextmanager
 
@@ -23,6 +22,7 @@ import pyArango.validation as pvl
 from pyArango.theExceptions import ValidationError
 import json
 import os
+# import pprint
 
 PATH_TO_CONFIG = os.path.expanduser('~/.ikconfig')
 
@@ -171,6 +171,28 @@ def get_topic_by_name(database, topic_name, as_simple_query=False):
         return None
 
 
+def display(elements, title, separator='==========', hide_privates=True):
+    """
+    todo: accept graph-like argument
+    todo: accept optional argument to only display specific fields
+    todo: control field order in display
+    :param elements: iterable of pyarango docs, (e.g. simple query object)
+    :param title: str to display before anything else
+    :param separator: str to display in between elements
+    :param hide_privates: bool. If True, private doc attributes not shown
+    :return:
+    """
+    print(title)
+    for el in elements:
+        content = el.getStore()
+        if hide_privates:
+            for k in el.privates:
+                del content[k]
+        for k, v in content.items():
+            print(k, ': ', v)
+        print(separator)
+
+
 class StringVal(pvl.Validator):
     """
     string validator for pyArango custom collections
@@ -280,18 +302,10 @@ class UserInterface:
         lists all topics in database
         :return:
         """
-        sep_line = '----------------------'
 
         simple_query = self.db[DB_NAMES['collections']['topics']].fetchAll()
 
-        print(f'LIST OF {simple_query.count} TOPICS IN DB')
-
-        for topic in simple_query:
-            name_key = DB_NAMES['fields']['topics']['name']
-            description_key = DB_NAMES['fields']['topics']['description']
-            print(f"\n{name_key}: {topic[name_key]}\n")
-            print(f"{description_key}:\n{topic[description_key]}")
-            print(sep_line)
+        display(simple_query, title=f'LIST OF {simple_query.count} TOPICS IN DB')
 
     def set_subtopic(self, supratopic, subtopic):
         """
@@ -389,7 +403,6 @@ class UserInterface:
                 topic_list.append(t)
 
         return topic_list
-
 
 # def doc_in_list(document, list_of_docs):
 #     doc_id = document['_id']
