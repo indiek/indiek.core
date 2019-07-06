@@ -19,7 +19,7 @@ from pyArango.document import Document
 import pyArango.collection as pcl
 from pyArango.graph import Graph, EdgeDefinition
 import pyArango.validation as pvl
-from pyArango.theExceptions import ValidationError
+from pyArango.theExceptions import ValidationError, InvalidDocument
 import json
 import os
 import pprint
@@ -349,12 +349,14 @@ class UserInterface:
         todo: get genealogy of both topics and warn the user if genalogies have non-zero intersection
         """
         name_field = DB_NAMES['fields']['topics']['name']
+        subname = subtopic if isinstance(subtopic, str) else subtopic[name_field]
+        supname = supratopic if isinstance(supratopic, str) else supratopic[name_field]
         if self.has_as_descendent(supratopic, subtopic):
-            print(f"topic {subtopic[name_field]} is already a descendent "
-                  f"of topic {supratopic[name_field]}. No new link created.")
+            print(f"topic {subname} is already a descendent "
+                  f"of topic {supname}. No new link created.")
         elif self.has_as_descendent(subtopic, supratopic):
-            print(f"topic {subtopic[name_field]} is already an ancestor "
-                  f"of topic {supratopic[name_field]}. No new link created to avoid loop.")
+            print(f"topic {subname} is already an ancestor "
+                  f"of topic {supname}. No new link created to avoid loop.")
         else:
             if isinstance(supratopic, str):
                 supratopic = get_topic_by_name(self.db, supratopic)
@@ -441,11 +443,17 @@ class UserInterface:
         :return:
         """
         data = json.load(f)
-
+        exclude = []
         for t in data['topics']:
-            self.create_topic(t['name'], t['description'])
+            try:
+                self.create_topic(t['name'], t['description'])
+            except InvalidDocument as err:
+                exclude.append(t['name'])
+                print(f"Can't import topic with name {t['name']}")
+                print(err)
         for r in data['relations']:
-            self.set_subtopic(r['supratopic'], r['subtopic'])
+            if r['supratopic'] not in exclude and r['subtopic'] not in exclude:
+                self.set_subtopic(r['supratopic'], r['subtopic'])
 
 # def doc_in_list(document, list_of_docs):
 #     doc_id = document['_id']
