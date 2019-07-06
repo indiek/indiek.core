@@ -209,14 +209,12 @@ def display(elements, title, separator='==========', hide_privates=True, only_fi
                 # bool below is True if only_fields contains no private field
                 null_intersection = not bool(set(only_fields).intersection(set(el.privates)))
                 if null_intersection:  # case 2
-                    if hide_privates_cond:
-                        return True
-                    if only_fields_cond:
+                    if hide_privates_cond or only_fields_cond:
                         return True
                     return False
                 if hide_privates:
                     return only_fields_cond  # case 4
-                return key not in set(only_fields).union(set(el.privates))
+                return key not in set(only_fields).union(set(el.privates))  # case 3
 
         content = el.getStore()
 
@@ -436,6 +434,18 @@ class UserInterface:
                 topic_list.append(t)
 
         return topic_list
+
+    def import_topics(self, f):
+        """
+        :param f: file-like object with read permission
+        :return:
+        """
+        data = json.load(f)
+
+        for t in data['topics']:
+            self.create_topic(t['name'], t['description'])
+        for r in data['relations']:
+            self.set_subtopic(r['supratopic'], r['subtopic'])
 
 # def doc_in_list(document, list_of_docs):
 #     doc_id = document['_id']

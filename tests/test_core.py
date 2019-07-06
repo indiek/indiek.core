@@ -2,6 +2,8 @@ import io
 import unittest
 import sys
 import pprint
+from tempfile import NamedTemporaryFile as Tmp
+import json
 from pyArango.theExceptions import ConnectionError, ValidationError, InvalidDocument
 
 # todo: clean up following imports
@@ -50,6 +52,77 @@ class GraphForTests:
     minimal = ['t1', 't2', 't5', 't7']
     maximal = ['t7', 't9']
     singleton = list(set(minimal).intersection(maximal))
+
+    test_topics_graph = {
+        'topics': [
+            {
+                'name': 't1',
+                'description': 'minimal element'
+            },
+            {
+                'name': 't2',
+                'description': 'same level as t1'
+            },
+            {
+                'name': 't3',
+                'description': 'child of t1 and t2'
+            },
+            {
+                'name': 't4',
+                'description': 'child of t3 and t5'
+            },
+            {
+                'name': 't5',
+                'description': 'minimal element'
+            },
+            {
+                'name': 't6',
+                'description': 'maximal element'
+            },
+            {
+                'name': 't7',
+                'description': 'minimal & maximal element & singleton'
+            },
+            {
+                'name': 't8',
+                'description': 'blablabla'
+            },
+            {
+                'name': 't9',
+                'description': 'maximal element'
+            }
+        ],
+        'relations': [
+            {
+                'supratopic': 't1',
+                'subtopic': 't3'
+            },
+            {
+                'supratopic': 't2',
+                'subtopic': 't3'
+            },
+            {
+                'supratopic': 't3',
+                'subtopic': 't4'
+            },
+            {
+                'supratopic': 't5',
+                'subtopic': 't4'
+            },
+            {
+                'supratopic': 't4',
+                'subtopic': 't6'
+            },
+            {
+                'supratopic': 't6',
+                'subtopic': 't8'
+            },
+            {
+                'supratopic': 't8',
+                'subtopic': 't9'
+            }
+        ]
+    }
 
     @staticmethod
     def create_test_topics_graph(db):
@@ -371,6 +444,26 @@ class TestTopicFieldValidation(unittest.TestCase):
             # todo: check what happens if topic1 is modified, patched and if its privates are forcefully edited
             # remember the useful method doc.setPrivates({'_rev': 'new val'})
 
+
+class TestBulkImport(unittest.TestCase):
+    def setUp(self):
+        ikcore.db_setup(TEST_CONFIG)
+
+    def tearDown(self):
+        ikcore.db_erase(TEST_CONFIG)
+
+    def test_import_topics(self):
+        with ikcore.session(config=TEST_CONFIG) as db:
+            sess = ikcore.UserInterface(db)
+            with Tmp(mode='w+t', delete=False, encoding='utf-8') as f:
+                json.dump(GraphForTests.test_topics_graph, f, ensure_ascii=False, indent=4)
+                filename = f.name
+            with open(f.name, 'r') as f:
+                sess.import_topics(f)
+            t1 = ikcore.get_topic_by_name(sess.db, 't1')
+            self.assertTrue(t1 is not None)
+            self.assertTrue(sess.has_as_descendent(t1, 't3'))
+            self.assertTrue(sess.has_as_descendent('t3', 't9'))
 
 if __name__ == '__main__':
     unittest.main()
