@@ -14,7 +14,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/indiek/indiek.core",
-    packages=setuptools.find_packages(exclude=['docs', 'tests*']),
+    packages=setuptools.find_namespace_packages(exclude=['docs', 'tests*', 'ignore']),
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",

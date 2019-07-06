@@ -104,3 +104,4 @@ venv.bak/
 .mypy_cache/
 python_scripts/.idea/*
 .idea/*
+ignore/*

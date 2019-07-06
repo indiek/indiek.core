@@ -11,6 +11,8 @@ Examples:
     ...     if topic1 is None:
     ...         topic1 = get_topic_by_name(sess.db, 'topic title')
     ...     sess.display(topic1)
+
+todo: program items and their relationship
 """
 from contextlib import contextmanager
 
