@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='indiek-core',
     python_requires='>=3.8',
-    version='0.1.0',
+    version='0.1.1',
     description='core logic for indiek',
     long_description='',
     author='Adrian Ernesto Radillo',
