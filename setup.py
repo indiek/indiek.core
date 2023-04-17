@@ -9,18 +9,22 @@ setup(
     name='indiek-core',
     python_requires='>=3.8',
     version='0.1.1',
+    url='https://pypi.org/project/indiek-core/',
     description='core logic for indiek',
     long_description=long_description,
     author='Adrian Ernesto Radillo',
     author_email='adrian.radillo@gmail.com',
     license='GNU Affero General Public License v3.0',
     packages=['indiek.core'],
-    install_requires=['indiek-mockdb=0.1.1']
+    install_requires=['indiek-mockdb==0.1.1'],
     extras_require={
         'dev': [
             'pytest',
             'pytest-pep8',
             'pytest-cov'
         ]
-    }
+    },
+    project_urls={
+        'GitHub': 'https://github.com/indiek',
+    },
 )
