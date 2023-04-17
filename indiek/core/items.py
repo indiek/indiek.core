@@ -10,3 +10,6 @@ class Item:
 
     def to_db(self):
         return self.backend.Item.from_core(self)
+    
+    def to_dict(self):
+        return {'name': self.name, 'content': self.content}
