@@ -27,8 +27,12 @@ class Item:
         name = self.name
         content_hash = hash(self.content)
         driver = self.backend
-        return f"Core Item:{_ikid=};{name=};{content_hash=};{driver=}"
+        return f"module: {__name__}; class:{self.__class__.__name__}; {_ikid=}; {name=}; {content_hash=}; {driver=}"
     
+    def __hash__(self):
+        # TODO: not sure this __hash__ method follows best practices
+        return hash((self._ikid, self.name, self.content, self.__class__.__name__))
+
     def __str__(self):
         return f"Core Item with ID {self._ikid} and name {self.name}"
 
@@ -36,9 +40,9 @@ class Item:
         cond = self._ikid == other._ikid
         cond = cond and self.name == other.name
         cond = cond and self.content == other.content
-        return cond
+        return cond and isinstance(other, self.__class__)
 
-    def __init__(self, name: str = '', content: Any = '', _ikid: Optional[int] = None, driver: Any = default_driver):
+    def __init__(self, *, name: str = '', content: Any = '', _ikid: Optional[int] = None, driver: Any = default_driver):
         self._ikid = _ikid
         self.name = name
         self.content = content

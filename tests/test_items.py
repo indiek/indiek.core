@@ -35,5 +35,11 @@ class TestItemIO(unittest.TestCase):
         self.assertIn(pure_item, existing)
 
 
+class TestComparison(unittest.TestCase):
+    def test_core_vs_db(self):
+        core = Item()
+        db = core._to_db()
+        self.assertFalse(core == db)
+
 if __name__ == '__main__':
     unittest.main()
