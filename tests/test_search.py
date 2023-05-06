@@ -6,7 +6,7 @@ from indiek.core.search import list_all_items
 class TestSearch(unittest.TestCase):
     def setUp(self) -> None:
         """Make sure DB has at least 1 Item"""
-        dummy =  Item().to_db()
+        dummy =  Item()
         dummy.save()
 
     def test_list_all_items(self):

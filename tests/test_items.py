@@ -1,4 +1,5 @@
 import unittest
+from indiek.core.search import list_all_items
 from indiek.core.items import Item
 from indiek.mockdb.items import Item as DBitem
 from indiek import mockdb
@@ -10,7 +11,9 @@ class TestItemAttr(unittest.TestCase):
         expected_attr = [
             'name',
             'content',
-            'to_db'
+            '_to_db',
+            '_ikid',
+            'save'
         ]
         for attr_name in expected_attr:
             self.assertTrue(hasattr(item, attr_name))
@@ -19,10 +22,17 @@ class TestItemAttr(unittest.TestCase):
 class TestItemIO(unittest.TestCase):
     db_driver = mockdb.items
 
-    def test_item_io(self):
+    def test_to_db(self):
         pure_item = Item(driver=self.db_driver)
-        db_item = pure_item.to_db()
-        self.assertIsInstance(db_item, DBitem)
+        db_item = pure_item._to_db()
+        self.assertIsInstance(db_item, DBitem)        
+
+    def test_item_io(self):
+        pure_item = Item(name='someuniquename', driver=self.db_driver)
+        pure_item.save()
+        existing = list_all_items()
+        # breakpoint()
+        self.assertIn(pure_item, existing)
 
 
 if __name__ == '__main__':
