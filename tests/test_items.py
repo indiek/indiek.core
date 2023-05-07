@@ -1,9 +1,9 @@
 import unittest
-from indiek.core.search import list_all_items
-from indiek.core.items import Item
+from indiek.core.items import Item, Definition, Theorem, Proof
 from indiek.mockdb.items import Item as DBitem
 from indiek import mockdb
 
+CORE_ITEM_TYPES = [Definition, Theorem, Proof]
 
 class TestItemAttr(unittest.TestCase):
     def test_instantiation(self):
@@ -25,21 +25,28 @@ class TestItemIO(unittest.TestCase):
     def test_to_db(self):
         pure_item = Item(driver=self.db_driver)
         db_item = pure_item._to_db()
-        self.assertIsInstance(db_item, DBitem)        
+        self.assertIsInstance(db_item, DBitem)
+
+        for core_cls in CORE_ITEM_TYPES:
+            pure_item = core_cls(driver=self.db_driver)
+            db_item = pure_item._to_db()
+            self.assertIsInstance(db_item, pure_item.BACKEND_CLS)
 
     def test_item_io(self):
-        pure_item = Item(name='someuniquename', driver=self.db_driver)
-        pure_item.save()
-        existing = list_all_items()
-        # breakpoint()
-        self.assertIn(pure_item, existing)
-
+        """Each item type gets written and retrieved."""
+        for item_type in CORE_ITEM_TYPES:
+            core_item = item_type(driver=self.db_driver)
+            core_item.save()
+            new_item = item_type.load(core_item._ikid)
+            self.assertEqual(core_item, new_item)
+            
 
 class TestComparison(unittest.TestCase):
     def test_core_vs_db(self):
         core = Item()
         db = core._to_db()
         self.assertFalse(core == db)
+
 
 if __name__ == '__main__':
     unittest.main()

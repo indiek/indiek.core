@@ -8,7 +8,7 @@ with open(join(this_dir, 'README.rst'), encoding='utf-8') as file:
 setup(
     name='indiek-core',
     python_requires='>=3.8',
-    version='0.1.2',
+    version='0.1.3',
     url='https://pypi.org/project/indiek-core/',
     description='core logic for indiek',
     long_description=long_description,
@@ -16,7 +16,7 @@ setup(
     author_email='adrian.radillo@gmail.com',
     license='GNU Affero General Public License v3.0',
     packages=['indiek.core'],
-    install_requires=['indiek-mockdb==0.1.2'],
+    install_requires=['indiek-mockdb==0.1.3'],
     extras_require={
         'dev': [
             'pytest',
