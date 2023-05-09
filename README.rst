@@ -18,14 +18,13 @@ Quickstart
 
 ..  code-block:: python
     
-    from indiek.core.items import Item
-    from indiek.mockdb.items import Item as DBitem
+    from indiek.core.items import Definition
     
-    item1 = Item(name='item1', content='example item 1').to_db()
-    item1.save()
-    
-    item2 = DBitem.load(item1.ikid)
-    print(item2.name, item2.content)
+    item1 = Definition(name='def1', content='example def 1')
+    item1_id = item1.save()
+
+    reloaded = Definition.load(item1_id)
+    assert item1 == reloaded
 
 =====
 Tests
