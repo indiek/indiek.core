@@ -1,6 +1,6 @@
 import unittest
 from indiek.core.items import Item, Definition, Theorem, Proof
-from indiek.mockdb.items import Item as DBitem
+from indiek.mockdb.items import Definition as DBDefinition
 from indiek import mockdb
 
 CORE_ITEM_TYPES = [Definition, Theorem, Proof]
@@ -23,9 +23,9 @@ class TestItemIO(unittest.TestCase):
     db_driver = mockdb.items
 
     def test_to_db(self):
-        pure_item = Item(driver=self.db_driver)
+        pure_item = Definition(driver=self.db_driver)
         db_item = pure_item._to_db()
-        self.assertIsInstance(db_item, DBitem)
+        self.assertIsInstance(db_item, DBDefinition)
 
         for core_cls in CORE_ITEM_TYPES:
             pure_item = core_cls(driver=self.db_driver)
@@ -45,7 +45,7 @@ class TestComparison(unittest.TestCase):
     def test_core_vs_db(self):
         core = Item()
         db = core._to_db()
-        self.assertFalse(core == db)
+        self.assertNotEqual(core, db)
 
 
 if __name__ == '__main__':

@@ -22,9 +22,6 @@ class Item:
         backend (Any): backend port for I/O operations with DB
     """
 
-    BACKEND_CLS = default_driver.Item
-    """Class from backend items module corresponding to present core API class."""
-
     def __init__(self, *, name: str = '', content: Any = '', _ikid: Optional[int] = None, driver: Any = default_driver):
         self._ikid = _ikid
         self.name = name
@@ -53,7 +50,10 @@ class Item:
 
     def _to_db(self) -> default_driver.Item:
         """Export core Item to DB Item instance."""
-        return self.BACKEND_CLS.from_core(self)
+        try:
+            return self.BACKEND_CLS.from_core(self)
+        except AttributeError:
+            return self.backend.Item.from_core(self)
     
     def save(self) -> int:
         """Save to backend.
