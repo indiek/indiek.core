@@ -22,6 +22,8 @@ class Item:
         backend (Any): backend port for I/O operations with DB
     """
 
+    _attr_defs = ['_ikid', 'content', 'name']
+    
     def __init__(self, *, name: str = '', content: Any = '', _ikid: Optional[int] = None, driver: Any = default_driver):
         self._ikid = _ikid
         self.name = name
@@ -50,10 +52,16 @@ class Item:
 
     def _to_db(self) -> default_driver.Item:
         """Export core Item to DB Item instance."""
+        as_dict = self.to_dict()
         try:
-            return self.BACKEND_CLS.from_core(self)
+            return self.BACKEND_CLS(**as_dict)
         except AttributeError:
-            return self.backend.Item.from_core(self)
+            return self.backend.Item(**as_dict)
+        
+    @property
+    def exists_in_db(self):
+        """This is shallow, it doesn't query the DB at all."""
+        return self._ikid is not None
     
     def save(self) -> int:
         """Save to backend.
@@ -64,6 +72,10 @@ class Item:
         """
         self._ikid = self._to_db().save()
         return self._ikid
+    
+    def delete(self) -> None:
+        self._to_db().delete()
+        self._ikid = None
 
     @classmethod
     def load(cls, ikid) -> Item:
@@ -77,7 +89,7 @@ class Item:
     
     def to_dict(self):
         """Export core Item content to dict."""
-        return {'name': self.name, 'content': self.content, '_ikid': self._ikid}
+        return {a: getattr(self, a) for a in self._attr_defs}
     
 
 class Definition(Item):
