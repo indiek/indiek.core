@@ -1,10 +1,7 @@
 import unittest
 import re
-from indiek.core.items import  Proof, Theorem, Definition
+from indiek.core.items import  Proof, Theorem, Definition, CORE_ITEM_TYPES
 from indiek.core.search import list_all_items, search_and_cast, build_search_query, filter_str
-
-
-CORE_ITEM_TYPES = [Proof, Theorem, Definition]
 
 
 class TestSearch(unittest.TestCase):
@@ -12,7 +9,7 @@ class TestSearch(unittest.TestCase):
         """Make sure DB has at least 1 Item of each type."""
         self.ids = {cls: cls(name=str(cls)).save() for cls in CORE_ITEM_TYPES}
 
-    def test_list_all_items(self):
+    def test_list_all_items_1(self):
         # all written items have 'class' in their name
         class_in_name = filter_str("class")
             
@@ -30,7 +27,7 @@ class TestSearch(unittest.TestCase):
             elif core_type == Definition:
                 self.assertFalse(core_items)
 
-    def test_list_all_items(self):
+    def test_list_all_items_2(self):
         # at least written items from setUp should be present
         all_items = []
         for ilist in list_all_items().values():

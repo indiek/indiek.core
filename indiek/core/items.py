@@ -92,16 +92,15 @@ class Item:
         return {a: getattr(self, a) for a in self._attr_defs}
     
 
+# TODO: automate class creation below
 class Definition(Item):
     BACKEND_CLS = default_driver.Definition
-    pass
-
-
 class Theorem(Item):
     BACKEND_CLS = default_driver.Theorem
-    pass
-
-
 class Proof(Item):
     BACKEND_CLS = default_driver.Proof
-    pass
+class Note(Item):
+    BACKEND_CLS = default_driver.Note
+class Question(Item):
+    BACKEND_CLS = default_driver.Question
+CORE_ITEM_TYPES = [Definition, Theorem, Proof, Note, Question]

@@ -1,15 +1,17 @@
 """Search logic for the core IndieK API."""
 import re
 from typing import List, Union, Sequence, Dict
-from indiek.core.items import Item, Definition, Theorem, Proof
+from indiek.core.items import Item, Definition, Theorem, Proof, Note, Question
+from indiek.core.items import CORE_ITEM_TYPES as ITEM_TYPES
 from indiek.mockdb.items import (Item as DBItem,
                                  Definition as DBDefinition,
                                  Theorem as DBTheorem,
-                                 Proof as DBProof)
+                                 Proof as DBProof,
+                                 Note as DBNote,
+                                 Question as DBQuestion)
 
 
-BackendItem = Union[DBItem, DBDefinition, DBTheorem, DBProof]
-ITEM_TYPES = Definition, Theorem, Proof
+BackendItem = Union[DBItem, DBDefinition, DBTheorem, DBProof, DBNote, DBQuestion]
 
 
 def build_search_query(string: str) -> re.Pattern:
@@ -46,7 +48,7 @@ def fetch_and_cast(core_cls: Item) -> List[Item]:
     return [core_cls.from_db(dbi) for dbi in db_cls.list_all()]
 
 
-def list_all_items(item_types: Sequence[Item] = (Definition, Theorem, Proof)) -> Dict[Item, List[Item]]:
+def list_all_items(item_types: Sequence[Item] = (Definition, Theorem, Proof, Note, Question)) -> Dict[Item, List[Item]]:
     """Fetch all items with optional type filter.
 
     Args:
@@ -66,7 +68,7 @@ def list_all_items(item_types: Sequence[Item] = (Definition, Theorem, Proof)) ->
     return {item_type: fetch_and_cast(item_type) for item_type in item_types}
 
 
-def filter_str(search_str: str, item_types: Sequence[Item] = (Definition, Theorem, Proof)) -> Dict[Item, List[Item]]:
+def filter_str(search_str: str, item_types: Sequence[Item] = (Definition, Theorem, Proof, Note, Question)) -> Dict[Item, List[Item]]:
     """Search items from specified type which match search string.
 
     Backend items of type compatible with item_types are searched, retrieved and cast to Core type.
