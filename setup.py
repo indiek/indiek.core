@@ -16,7 +16,7 @@ setup(
     author_email='adrian.radillo@gmail.com',
     license='GNU Affero General Public License v3.0',
     packages=['indiek.core'],
-    install_requires=['indiek-mockdb>=0.1.4'],
+    install_requires=['indiek-mockdb >= 0.1.6, <0.2.0'],
     extras_require={
         'dev': [
             'pytest',

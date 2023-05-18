@@ -1,5 +1,8 @@
 Library that stores the core logic for the IndieK software suite.
 
+This library is not meant to be used directly. Rather, it should be
+used by GUIs or web apps that wish to comply with the IndieK API.
+
 ============
 Installation
 ============
@@ -25,6 +28,8 @@ Quickstart
 
     reloaded = Definition.load(item1_id)
     assert item1 == reloaded
+
+    item1.delete()
 
 =====
 Tests
