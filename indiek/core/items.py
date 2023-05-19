@@ -5,6 +5,9 @@ from indiek.mockdb import items as default_driver
 
 IKID = 'iKiD'
 
+class NestedNoteLoop(Exception): pass
+class AddContentToPointerNote(Exception): pass
+class DeadPointerNoteSave(Exception): pass
 
 class Nucleus:
     """Nuclear item."""
@@ -127,7 +130,7 @@ class Note(Nucleus):
     Notes are meant to act as Wikis in IndieK.
     """
 
-    def __init__(self, _ikid: Optional[int] = None, driver: Any = default_driver):
+    def __init__(self, *, _ikid: Optional[int] = None, driver: Any = default_driver):
         super().__init__(_ikid, driver)
         self.content = []
         self.mentions = set()
