@@ -40,6 +40,14 @@ class Nucleus:
         self._ikid = None
 
 
+def str2note(string_or_note: str | Note) -> Note:
+    if isinstance(string_or_note, Note):
+        return string_or_note
+    note = Note()
+    note.add_content(string_or_note)
+    return note
+
+
 class Item(Nucleus):
     """Generic Item in IndieK core.
 
@@ -61,10 +69,10 @@ class Item(Nucleus):
 
     _attr_defs = ['_ikid', 'content', 'name']
     
-    def __init__(self, *, name: str = '', content: Any = '', _ikid: Optional[int] = None, driver: Any = default_driver):
+    def __init__(self, *, name: str | Note = '', content: str | Note = '', _ikid: Optional[int] = None, driver: Any = default_driver):
         super().__init__(_ikid, driver)
-        self.name = name
-        self.content = content
+        self.name = str2note(name)
+        self.content = str2note(content)
 
     def __repr__(self):
         _ikid = self._ikid
@@ -169,7 +177,7 @@ class PointerNote(Note):
         Note (_type_): _description_
     """
 
-    def __init__(self, reference: Note | Item):
+    def __init__(self, reference: Nucleus):
         assert reference.exists_in_db, "Cannot reference unsaved item or note."
         super().__init__()
         self.content = [IKID + str(reference.ikid)]
