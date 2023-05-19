@@ -42,7 +42,7 @@ class Item:
         return hash((self._ikid, self.name, self.content, self.__class__.__name__))
 
     def __str__(self):
-        return f"Core Item with ID {self._ikid} and name {self.name}"
+        return f"Core {self.__class__.__name__} with ID {self.ikid} and name {self.name}"
 
     def __eq__(self, other) -> bool:
         return (self._ikid == other._ikid
@@ -58,6 +58,10 @@ class Item:
         except AttributeError:
             return self.backend.Item(**as_dict)
         
+    @property 
+    def ikid(self):
+        return self._ikid
+    
     @property
     def exists_in_db(self):
         """This is shallow, it doesn't query the DB at all."""

@@ -1,5 +1,5 @@
 import unittest
-from indiek.core.items import Item, Definition, Theorem, Proof, CORE_ITEM_TYPES
+from indiek.core.items import Item, Definition, CORE_ITEM_TYPES
 from indiek.mockdb.items import Definition as DBDefinition
 from indiek import mockdb
 
