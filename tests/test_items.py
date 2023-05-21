@@ -17,7 +17,7 @@ class TestItemAttr(unittest.TestCase):
             'name',
             'content',
             '_to_db',
-            '_ikid',
+            'ikid',
             'save'
         ]
         for attr_name in expected_attr:
