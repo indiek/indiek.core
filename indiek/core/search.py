@@ -7,11 +7,10 @@ from indiek.mockdb.items import (Item as DBItem,
                                  Definition as DBDefinition,
                                  Theorem as DBTheorem,
                                  Proof as DBProof,
-                                 Note as DBNote,
                                  Question as DBQuestion)
 
 
-BackendItem = Union[DBItem, DBDefinition, DBTheorem, DBProof, DBNote, DBQuestion]
+BackendItem = Union[DBItem, DBDefinition, DBTheorem, DBProof, DBQuestion]
 
 
 def build_search_query(string: str) -> re.Pattern:

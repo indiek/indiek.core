@@ -44,12 +44,28 @@ class TestItemIO(unittest.TestCase):
 
     def test_item_io(self):
         """Each item type gets written and retrieved."""
-        for item_type in CORE_ITEM_TYPES + [Note, PointerNote]:
+        for item_type in CORE_ITEM_TYPES + [Note]:
             core_item = item_type(driver=self.db_driver)
             core_item.save()
-            new_item = item_type.load(core_item._ikid)
+            new_item = item_type.load(core_item.ikid)
+            # breakpoint()
             self.assertEqual(core_item, new_item)
-            
+
+        # PointerNote needs a ref to instantiate, so out of for loop
+        core_pointer_note = PointerNote(new_item, driver=self.db_driver)
+
+        self.assertEqual(len(core_pointer_note.mentions), 1)
+
+        core_pointer_note.save()
+
+        self.assertEqual(len(core_pointer_note.mentions), 1)
+        # breakpoint()
+        reloaded = PointerNote.load(core_pointer_note.ikid)
+
+        self.assertEqual(len(core_pointer_note.mentions), 1)
+        # breakpoint()
+        self.assertEqual(core_pointer_note, reloaded)
+
 
 class TestComparison(unittest.TestCase):
     def test_core_vs_db(self):
@@ -78,6 +94,38 @@ class TestNote(unittest.TestCase):
         self.n2.add_content(self.n3)
         self.n3.add_content('c')
         
+    def test_depth(self):
+        self.assertEqual(self.n1.depth, 3)
+        self.assertEqual(self.n2.depth, 2)
+        self.assertEqual(self.n3.depth, 1)
+
+        # a slightly more advanced structure
+        master_note = Note()  # depth 4
+        child_1 = Note()  # depth 2
+        child_1_1 = Note()  # depth 1
+        child_1_2 = Note()  # depth 1
+        child_2 = Note()  # depth 3
+        child_3 = Note()  # depth 2
+        child_4 = Note()  # depth 1
+        child_3.add_content(child_4)
+        child_2.add_content(child_3)
+        master_note.add_content(child_1)
+        master_note.add_content(child_2)
+        child_1.add_content(child_1_1)
+        child_1.add_content(child_1_2)
+        notes = [
+            master_note,
+            child_1,
+            child_1_1,
+            child_1_2,
+            child_2,
+            child_3,
+            child_4
+        ]
+        expected = [4, 2, 1, 1, 3, 2, 1]
+        for n, d in zip(notes, expected):
+            self.assertEqual(n.depth, d)
+
     def test_no_arg(self):
         self.assertRaises(TypeError, Note, '3')
 
