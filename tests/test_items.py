@@ -40,7 +40,7 @@ class TestItemIO(unittest.TestCase):
         for core_cls in CORE_ITEM_TYPES:
             pure_item = core_cls(driver=self.db_driver)
             db_item = pure_item._to_db()
-            self.assertIsInstance(db_item, pure_item.BACKEND_CLS)
+            self.assertIsInstance(db_item, getattr(pure_item.backend, core_cls.__name__))
 
     def test_item_io(self):
         """Each item type gets written and retrieved."""
