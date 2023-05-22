@@ -145,7 +145,8 @@ class Note(Nucleus):
     def __init__(self, *, ikid: Optional[int] = None, driver: Any = default_driver):
         super().__init__(ikid, driver)
         self.content = []
-        self.mentions = set()
+        self.mentions = set()  # flat mentions of objects
+        self.children = set()  # flat descendence of notes
         # TODO: add a content_type attr?
         # self._depth = 1
     
@@ -154,6 +155,7 @@ class Note(Nucleus):
         # backend = import_module(db_item.__module__)
         note = cls(ikid=db_item.ikid)
         note.mentions = db_item.mentions
+        note.children = db_item.children
         content = []
         for entry in db_item.flat_content:
             is_note, child_ikid = db_item.is_note(entry)
@@ -175,7 +177,10 @@ class Note(Nucleus):
 
     def add_content(self, content: Self | str) -> None:
         if not isinstance(content, str):
+            if self.ikid in content.children:
+                raise NestedNoteLoop(f"{self} already a child of {content}")
             self.update_mentions(content)
+            self.update_children(content)
             # self._depth += content.depth
         self.content.append(content)
 
@@ -202,6 +207,10 @@ class Note(Nucleus):
 
     def update_mentions(self, content):
         self.mentions.update(content.mentions)
+
+    def update_children(self, content):
+        self.children.update(content.children)
+        self.children.update({content.ikid})
 
 
 class PointerNote(Note):
