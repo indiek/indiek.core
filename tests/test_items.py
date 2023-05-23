@@ -88,6 +88,7 @@ class TestNote(unittest.TestCase):
 
     def setUp(self) -> None:
         self.n1, self.n2, self.n3 = Note(), Note(), Note()
+        self.n1.save(), self.n2.save(), self.n3.save()
         self.n1.add_content('a')
         self.n2.add_content('b')
         self.n1.add_content(self.n2)
@@ -107,8 +108,15 @@ class TestNote(unittest.TestCase):
         child_2 = Note()  # depth 3
         child_3 = Note()  # depth 2
         child_4 = Note()  # depth 1
+        child_4.save()
+        child_3.save()
+        child_2.save()
+        child_1.save()
+        child_1_1.save()
+        child_1_2.save()
         child_3.add_content(child_4)
         child_2.add_content(child_3)
+        # breakpoint()
         master_note.add_content(child_1)
         master_note.add_content(child_2)
         child_1.add_content(child_1_1)

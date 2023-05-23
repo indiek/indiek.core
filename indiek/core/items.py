@@ -6,6 +6,7 @@ from indiek.mockdb import items as default_driver
 
 IKID = 'iKiD'
 
+class UnsavedNote(Exception): pass
 class NestedNoteLoop(Exception): pass
 class AddContentToPointerNote(Exception): pass
 class DeadPointerNoteSave(Exception): pass
@@ -177,6 +178,8 @@ class Note(Nucleus):
 
     def add_content(self, content: Self | str) -> None:
         if not isinstance(content, str):
+            if not content.exists_in_db:
+                raise UnsavedNote("Save the note before nesting it.")
             if self.ikid in content.children:
                 raise NestedNoteLoop(f"{self} already a child of {content}")
             self.update_mentions(content)
