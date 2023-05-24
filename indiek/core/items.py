@@ -148,6 +148,7 @@ class Note(Nucleus):
         self.content = []
         self.mentions = set()  # flat mentions of objects
         self.children = set()  # flat descendence of notes
+        self.parents = set()  # flat ascendence of notes
         # TODO: add a content_type attr?
         # self._depth = 1
     
@@ -167,7 +168,6 @@ class Note(Nucleus):
                 content.append(entry)
         note.content = content
         return note
-            
 
     @property
     def depth(self):
@@ -175,6 +175,15 @@ class Note(Nucleus):
         if note_children:
             return 1 + max(c.depth for c in note_children)
         return 1
+    
+    def save(self) -> int:
+        """Save to backend.
+        
+        but also propagate id to all descendents.
+        """
+        super().save()
+        for c in self.children:
+            c.update_parents(self)
 
     def add_content(self, content: Self | str) -> None:
         if not isinstance(content, str):
@@ -182,9 +191,15 @@ class Note(Nucleus):
                 raise UnsavedNote("Save the note before nesting it.")
             if self.ikid in content.children:
                 raise NestedNoteLoop(f"{self} already a child of {content}")
-            self.update_mentions(content)
-            self.update_children(content)
+            
+            self.update_mentions(content, recurse=True)
+
+            # add content as children to all ancestors
+            self.update_children(content, recurse=True)
             # self._depth += content.depth
+
+            if self.exists_in_db:  # update parents of all branch
+                content.update_parents(self, recurse=True)
         self.content.append(content)
 
     def __hash__(self):
@@ -208,12 +223,36 @@ class Note(Nucleus):
     def _to_db(self):
         return self.backend.Note.from_core(self)
 
-    def update_mentions(self, content):
+    def update_mentions(self, content, recurse: bool = False):
+        """Adds content's ikid to mentions attr. 
+        
+        If recurse is True then ikid is added to all descendents
+        of self."""
         self.mentions.update(content.mentions)
+        if recurse:
+            for c in self.children:
+                child = self.load(c)
+                child.update_mentions(content, recurse=False)
 
-    def update_children(self, content):
+    def update_parents(self, content, recurse: bool = False):
+        """Add content's ikid to parents attr.
+        
+        If recurse is True, then ikid is added to all
+        children of self."""
+        self.parents.update({content.ikid})
+        if recurse:
+            for c in self.children:
+                child = self.load(c)
+                child.update_parents(content, recurse=False)
+
+    def update_children(self, content, recurse: bool = False):
         self.children.update(content.children)
         self.children.update({content.ikid})
+        if recurse:
+            for c in self.parents:
+                parent = self.load(c)
+                parent.update_children(content, recurse=False)
+
 
 
 class PointerNote(Note):

@@ -141,6 +141,7 @@ class TestNote(unittest.TestCase):
         self.assertEqual(str(self.n1), 'a b c')
 
     def test_forbid_loop(self):
+        # breakpoint()
         self.assertRaises(NestedNoteLoop, self.n3.add_content, self.n1)
 
     def test_str_update(self):
