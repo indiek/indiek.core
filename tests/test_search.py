@@ -1,7 +1,7 @@
 import unittest
 import re
 from indiek.core.items import  Proof, Theorem, Definition, CORE_ITEM_TYPES
-from indiek.core.search import list_all_items, search_and_cast, build_search_query, filter_str
+from indiek.core.search import list_all_items, search_and_cast, filter_str
 
 
 class TestSearch(unittest.TestCase):
@@ -53,7 +53,7 @@ class TestSearch(unittest.TestCase):
             self.assertIn(ikid, type_id_sets[core_type])
 
     def test_search_and_cast(self):
-        thm_query = re.compile('Theorem')
+        thm_query = 'Theorem'
         thm_result = search_and_cast(thm_query, Theorem)
 
         written_thm = Theorem.load(self.ids[Theorem])
@@ -63,14 +63,6 @@ class TestSearch(unittest.TestCase):
         proof_result = search_and_cast(thm_query, Proof)
         self.assertNotIn(written_proof, proof_result)
 
-    def test_build_search_query(self):
-        raw_str = r'user typed This'
-        query = build_search_query(raw_str)
-        base_str = '('
-        base_str += '|'.join(raw_str.split())
-        base_str += ')'
-        correct_query = re.compile(base_str, flags=re.IGNORECASE)
-        self.assertEqual(correct_query, query)
 
 if __name__ == '__main__':
     unittest.main()

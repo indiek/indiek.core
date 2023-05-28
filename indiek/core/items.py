@@ -1,5 +1,4 @@
 from __future__ import annotations
-# from importlib import import_module
 from typing import Any, Optional, Self
 from indiek.mockdb import items as default_driver
 
@@ -54,9 +53,12 @@ class Nucleus:
         raise NotImplementedError()
 
 
-def str2note(string_or_note: str | Note) -> Note:
+def int_or_str2note(string_or_note: str | Note) -> Note:
     if isinstance(string_or_note, Note):
         return string_or_note
+    if isinstance(string_or_note, int):
+        return Note.load(string_or_note)  # TODO: what about PointerNote case? Moot?
+
     note = Note()
     note.add_content(string_or_note)
     return note
@@ -83,10 +85,15 @@ class Item(Nucleus):
 
     _attr_defs = ['ikid', 'content', 'name']
     
-    def __init__(self, *, name: str | Note = '', content: str | Note = '', ikid: Optional[int] = None, driver: Any = default_driver):
+    def __init__(self, 
+                 *, 
+                 name: str | int | Note = '', 
+                 content: str | int | Note = '', 
+                 ikid: Optional[int] = None, 
+                 driver: Any = default_driver):
         super().__init__(ikid, driver)
-        self.name = str2note(name)
-        self.content = str2note(content)
+        self.name = int_or_str2note(name)
+        self.content = int_or_str2note(content)
 
     def __repr__(self):
         ikid = self.ikid
@@ -113,7 +120,7 @@ class Item(Nucleus):
         as_dict = self.to_dict()
         try:
             return getattr(self.backend, self.__class__.__name__)(**as_dict)
-        except AttributeError:
+        except AttributeError:  # fall back on Item if class unknown in backend...
             return self.backend.Item(**as_dict)
 
     @classmethod
@@ -123,7 +130,13 @@ class Item(Nucleus):
     
     def to_dict(self):
         """Export core Item content to dict."""
-        return {a: getattr(self, a) for a in self._attr_defs}
+        return {
+            'ikid': self.ikid,
+            'name': self.name.ikid,
+            'content': self.content.ikid
+        }
+    
+    
     
 
 # TODO: automate class creation below

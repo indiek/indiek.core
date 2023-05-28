@@ -13,18 +13,11 @@ from indiek.mockdb.items import (Item as DBItem,
 BackendItem = Union[DBItem, DBDefinition, DBTheorem, DBProof, DBQuestion]
 
 
-def build_search_query(string: str) -> re.Pattern:
-    base_str = '('
-    base_str += '|'.join(string.split())
-    base_str += ')'
-    return re.compile(base_str, flags=re.IGNORECASE)
-
-
-def search_and_cast(query: re.Pattern, core_cls: Item) -> List[Item]:
+def search_and_cast(query: str, core_cls: Item) -> List[Item]:
     """Trigger query on backend, fetch and cast to core objects.
 
     Args:
-        query (re.Pattern): compiled regex object.
+        query (str): string.
         core_cls (Item): item class in core API to use for filtering.
 
     Returns:
@@ -83,5 +76,4 @@ def filter_str(search_str: str, item_types: Sequence[Item] = (Definition, Theore
     """
     if len(item_types) == 0:
         item_types = ITEM_TYPES
-    query = build_search_query(search_str)
-    return {item_type: search_and_cast(query, item_type) for item_type in item_types}
+    return {item_type: search_and_cast(search_str, item_type) for item_type in item_types}

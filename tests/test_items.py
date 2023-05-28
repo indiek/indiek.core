@@ -48,7 +48,7 @@ class TestItemIO(unittest.TestCase):
             core_item = item_type(driver=self.db_driver)
             core_item.save()
             new_item = item_type.load(core_item.ikid)
-            # breakpoint()
+            breakpoint()
             self.assertEqual(core_item, new_item)
 
         # PointerNote needs a ref to instantiate, so out of for loop
@@ -151,7 +151,7 @@ class TestNote(unittest.TestCase):
         self.assertEqual(str(self.n1), 'a b c dollar')
 
     def test_nested_note_deletion(self):
-        del self.n2
+        self.n2.delete()
         self.assertEqual(str(self.n3), 'c')
         self.assertEqual(len(self.n1.content), 1)
 
